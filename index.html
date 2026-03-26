@@ -8,7 +8,8 @@
 <style>
 :root{--sakura:#E8A0B0;--sakura-deep:#C4637A;--ink:#1A1A2E;--ink-soft:#2D2D44;--cream:#FDF8F3;--gold:#D4A853;--jade:#4ECDC4;--muted:#8A8A9A;--card:#FFFFFF;--surface:#F5F0EA;--border:rgba(0,0,0,0.08);--shadow:0 2px 12px rgba(0,0,0,0.08);--radius:16px;--tab-h:64px;}
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
-body{font-family:'Noto Sans TC',sans-serif;background:var(--cream);color:var(--ink);min-height:100vh;max-width:480px;margin:0 auto;position:relative;overflow-x:hidden;}
+body{font-family:'Noto Sans TC',sans-serif;background:var(--cream);color:var(--ink);min-height:100vh;}
+#app-wrap{max-width:480px;margin:0 auto;position:relative;overflow-x:hidden;min-height:100vh;}
 .app-header{background:var(--ink);color:white;padding:20px 20px 16px;position:sticky;top:0;z-index:100;}
 .app-header h1{font-family:'DM Serif Display',serif;font-size:22px;}
 .subtitle{font-size:12px;color:var(--sakura);margin-top:2px;letter-spacing:1px;}
@@ -161,6 +162,7 @@ body{font-family:'Noto Sans TC',sans-serif;background:var(--cream);color:var(--i
 </style>
 </head>
 <body>
+<div id="app-wrap">
 
 <div class="app-header">
   <div class="header-row">
@@ -280,6 +282,7 @@ body{font-family:'Noto Sans TC',sans-serif;background:var(--cream);color:var(--i
   <button class="nav-item" onclick="switchPage('people',this)"><span class="nav-icon">👥</span><span>成員</span></button>
   <button class="nav-item" onclick="switchPage('expense',this)"><span class="nav-icon">💰</span><span>記帳</span></button>
 </nav>
+</div><!-- end app-wrap -->
 
 <!-- DETAIL MODAL -->
 <div class="modal-overlay" id="detailModal" onclick="closeModal('detailModal')">
@@ -1745,18 +1748,12 @@ function saveExpense() {
 // ====== MODAL ======
 function openModal(id) {
   document.getElementById(id).classList.add('show');
-  document.body.style.overflow = 'hidden';
-  document.body.style.position = 'fixed';
-  document.body.style.width = '100%';
+  document.body.style.overflowY = 'hidden';
 }
 function closeModal(id) {
   document.getElementById(id).classList.remove('show');
-  // Only restore scroll if no other modals are open
-  const anyOpen = document.querySelector('.modal-overlay.show');
-  if (!anyOpen) {
-    document.body.style.overflow = '';
-    document.body.style.position = '';
-    document.body.style.width = '';
+  if (!document.querySelector('.modal-overlay.show')) {
+    document.body.style.overflowY = '';
   }
 }
 
