@@ -698,6 +698,7 @@ function switchPage(name, el) {
   el.classList.add('active');
   if (name === 'expense') renderExpenses();
   if (name === 'people') renderParticipants();
+  if (name === 'transport') renderTransportPage();
 }
 
 // ====== SCHEDULE ======
@@ -835,34 +836,35 @@ function renderTimelineItems(dayIdx) {
       ? `<span style="font-size:10px;background:#FEE2E2;color:#EF4444;border-radius:6px;padding:2px 6px;display:inline-block;margin-bottom:2px;">⚠️ 時間衝突</span><br>`
       : '';
 
-    // ── Transport card: show depart → arrive + duration
+    // ── Transport card: depart → arrive + duration
     let transportInfo = '';
     if (isTransport) {
       const tMins = getTransportMins(item);
-      const depart = item._departTime || displayTime;
+      const depart = item._departTime || '';
       const arrive = item._calcArrival || '';
-      const durStr = tMins ? `${tMins} 分鐘` : '待查詢';
+      const durStr = tMins ? (tMins >= 60 ? `${Math.floor(tMins/60)}h${tMins%60?tMins%60+'m':''}` : `${tMins}分`) : '待查詢';
       transportInfo = `
         <div style="display:flex;align-items:center;gap:6px;margin-top:6px;font-size:12px;">
-          <span style="color:var(--ink-soft);font-weight:500;">${depart}</span>
-          <span style="color:var(--muted);">→</span>
-          <span style="color:var(--sakura-deep);font-weight:500;">${arrive || '?'}</span>
+          ${depart ? `<span style="color:var(--ink-soft);font-weight:500;">${depart}</span><span style="color:var(--muted);">→</span><span style="color:var(--sakura-deep);font-weight:500;">${arrive || '?'}</span>` : ''}
           <span style="background:#EFF6FF;color:#3B82F6;border-radius:20px;padding:1px 7px;font-size:11px;">⏱ ${durStr}</span>
         </div>`;
     }
 
-    // ── Spot card: show stay time + buffer
+    // ── Spot card: arrival + stay + leave + buffer
     let spotInfo = '';
     if (!isTransport) {
       const effectiveStay = (item.stayMins != null && item.stayMins >= 0) ? item.stayMins : 30;
       const stayStr = effectiveStay >= 60
-        ? `${Math.floor(effectiveStay/60)}h${effectiveStay%60 ? (effectiveStay%60)+'m' : ''}`
+        ? `${Math.floor(effectiveStay/60)}h${effectiveStay%60?effectiveStay%60+'m':''}`
         : `${effectiveStay}分`;
-      let bufferStr = '';
-      if (item._bufferMins && item._bufferMins > 0) {
-        bufferStr = `<span style="background:#ECFDF5;color:#059669;border-radius:20px;padding:1px 7px;font-size:11px;margin-left:4px;">+${item._bufferMins}分 提前</span>`;
-      }
-      spotInfo = `<div style="margin-top:4px;"><span style="font-size:11px;color:var(--muted);">⏱ 停留 ${stayStr}</span>${bufferStr}</div>`;
+      const leaveStr = item._leaveTime ? `<span style="font-size:11px;color:var(--muted);">離開 ${item._leaveTime}</span>` : '';
+      const bufferStr = (item._bufferMins && item._bufferMins > 0)
+        ? `<span style="background:#ECFDF5;color:#059669;border-radius:20px;padding:1px 7px;font-size:11px;margin-left:4px;">+${item._bufferMins}分 提前</span>`
+        : '';
+      spotInfo = `<div style="margin-top:4px;display:flex;align-items:center;flex-wrap:wrap;gap:4px;">
+        <span style="font-size:11px;color:var(--muted);">⏱ 停留 ${stayStr}</span>
+        ${leaveStr}${bufferStr}
+      </div>`;
     }
 
     const statusHtml = item.status
@@ -965,6 +967,7 @@ function onDragTouchEnd(e) {
     syncTransportCards(dayIdx);
     recalcDayTimes(dayIdx);
     renderTimelineItems(dayIdx);
+    renderTransportPage();
   }
 }
 
@@ -1011,6 +1014,7 @@ function saveNewSpot() {
   buildDayStrip();
   renderDayContent(di);
   goToSlide(di, true);
+  renderTransportPage();
 }
 
 // ====== EDIT / MOVE / DELETE ======
@@ -1124,7 +1128,7 @@ function getTransportMins(item) {
 
 function recalcDayTimes(dayIdx) {
   const items = DAYS[dayIdx].items;
-  let cursor = null; // minutes from midnight
+  let cursor = null;
 
   for (let i = 0; i < items.length; i++) {
     const item = items[i];
@@ -1132,6 +1136,7 @@ function recalcDayTimes(dayIdx) {
     item._bufferMins = null;
     item._departTime = null;
     item._calcArrival = null;
+    item._leaveTime = null;
 
     const isTransport = item.type === 'transport' || !!item._autoTransport;
 
@@ -1146,7 +1151,6 @@ function recalcDayTimes(dayIdx) {
       item._computed = true;
     }
 
-    // Advance cursor and annotate transport cards with depart/arrive
     if (cursor !== null) {
       if (isTransport) {
         const tMins = getTransportMins(item);
@@ -1154,33 +1158,25 @@ function recalcDayTimes(dayIdx) {
         if (tMins != null) {
           cursor += tMins;
           item._calcArrival = fmtTime(cursor);
-          item.arrivalTime = item._departTime; // transport "arrival" = depart for display
         }
+        item.arrivalTime = item._departTime;
       } else {
         const stay = (item.stayMins != null && item.stayMins >= 0) ? item.stayMins : 30;
+        item._leaveTime = fmtTime(cursor + stay);
         cursor += stay;
 
-        // Look ahead: if next non-transport item is locked, compute buffer
-        let nextLocked = null;
-        let transportDur = 0;
+        let nextLocked = null, transportDur = 0;
         for (let j = i + 1; j < items.length; j++) {
           const ni = items[j];
           if (ni.type === 'transport' || ni._autoTransport) {
-            const d = getTransportMins(ni);
-            if (d) transportDur += d;
+            const d = getTransportMins(ni); if (d) transportDur += d;
           } else {
-            if (ni.lockedArrival && ni.arrivalTime) {
-              nextLocked = parseTime(ni.arrivalTime);
-            }
+            if (ni.lockedArrival && ni.arrivalTime) nextLocked = parseTime(ni.arrivalTime);
             break;
           }
         }
-        if (nextLocked !== null) {
-          const needed = cursor + transportDur;
-          if (nextLocked > needed) {
-            item._bufferMins = nextLocked - needed;
-          }
-        }
+        if (nextLocked !== null && nextLocked > cursor + transportDur)
+          item._bufferMins = nextLocked - cursor - transportDur;
       }
     }
   }
@@ -1279,20 +1275,15 @@ function openItemDetail(dayIdx, itemIdx) {
 function renderItemDetail(dayIdx, itemIdx, routeIdx) {
   const item = DAYS[dayIdx].items[itemIdx];
   const typeLabels = {spot:'景點',food:'餐飲',transport:'交通',hotel:'住宿',concert:'演唱會',flight:'航班',shop:'購物'};
-  const encDest = encodeURIComponent(item.mapQuery);
-  const encFrom = item._fromQuery ? encodeURIComponent(item._fromQuery) : '';
-  const encTo   = item._toQuery   ? encodeURIComponent(item._toQuery)   : encDest;
   const isTransport = item.type === 'transport' || !!item._autoTransport;
+  const originQuery = item._fromQuery || (itemIdx > 0 ? DAYS[dayIdx].items[itemIdx-1].mapQuery : '');
+  const destQuery   = item._toQuery || item.mapQuery;
+  const departTime  = item._departTime || item.arrivalTime || null;
 
-  const transitUrl = encFrom
-    ? `https://www.google.com/maps/dir/?api=1&origin=${encFrom}&destination=${encTo}&travelmode=transit`
-    : `https://www.google.com/maps/dir/?api=1&destination=${encDest}&travelmode=transit`;
-  const searchUrl = `https://www.google.com/maps/search/?api=1&query=${encDest}`;
-  const prev = itemIdx > 0 ? DAYS[dayIdx].items[itemIdx - 1] : null;
-  const prevQuery = encFrom || (prev ? encodeURIComponent(prev.mapQuery) : '');
-  const betweenUrl = prevQuery
-    ? `https://www.google.com/maps/dir/?api=1&origin=${prevQuery}&destination=${encTo}`
-    : `https://www.google.com/maps/dir/?api=1&destination=${encTo}`;
+  const transitUrl = mapsTransitUrl(encodeURIComponent(originQuery), encodeURIComponent(destQuery), departTime, dayIdx);
+  const searchUrl  = 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(item.mapQuery);
+  const betweenUrl = mapsTransitUrl(encodeURIComponent(originQuery), encodeURIComponent(destQuery), departTime, dayIdx);
+  const encDest = encodeURIComponent(item.mapQuery);
 
   // Route selector
   let routeHtml = '';
@@ -1446,50 +1437,108 @@ function saveTimeEditor() {
   const dur = parseInt(document.getElementById('teDur').value);
   item.durationMins = isNaN(dur) ? null : dur;
 
-  // Recalc day and re-render timeline (problem 3: immediate update)
   recalcDayTimes(_timeDayIdx);
   renderTimelineItems(_timeDayIdx);
-
+  renderTransportPage();
   closeModal('timeEditorModal');
-  // Refresh the detail modal to show updated info
   renderItemDetail(_timeDayIdx, _timeItemIdx, selectedRouteIdx);
 }
 
-// ====== GOOGLE MAPS - FIX: use window.open with proper URL ======
+// Build Google Maps transit URL with scheduled departure date+time
+function mapsTransitUrl(origin, destination, departTimeStr, dayIdx) {
+  const base = 'https://www.google.com/maps/dir/?api=1';
+  const o = origin ? `&origin=${origin}` : '';
+  const d = `&destination=${destination}`;
+  const mode = '&travelmode=transit';
+
+  // Try to encode departure_time as Unix timestamp
+  let dtParam = '';
+  if (departTimeStr && dayIdx != null) {
+    const day = DAYS[dayIdx];
+    // day.date is like "4/27" → interpret as 2025/4/27
+    const dateParts = day.date.split('/');
+    const month = parseInt(dateParts[0]) - 1;
+    const dayNum = parseInt(dateParts[1]);
+    const timeParts = departTimeStr.split(':');
+    const hh = parseInt(timeParts[0]);
+    const mm = parseInt(timeParts[1]);
+    // Use JST (UTC+9)
+    const dt = new Date(Date.UTC(2025, month, dayNum, hh - 9, mm));
+    if (!isNaN(dt.getTime())) {
+      dtParam = `&departure_time=${Math.floor(dt.getTime() / 1000)}`;
+    }
+  }
+  return `${base}${o}${d}${mode}${dtParam}`;
+}
 function openMap(encodedQuery) {
-  const url = 'https://www.google.com/maps/search/?api=1&query=' + encodedQuery;
-  window.open(url, '_blank', 'noopener');
+  window.open('https://www.google.com/maps/search/?api=1&query=' + encodedQuery, '_blank', 'noopener');
 }
 
-function openMapNav(encodedQuery) {
-  const url = 'https://www.google.com/maps/dir/?api=1&destination=' + encodedQuery + '&travelmode=transit';
-  window.open(url, '_blank', 'noopener');
-}
 
-function openGoogleMapsTransit(encodedDest, encodedOrigin) {
-  let url = 'https://www.google.com/maps/dir/?api=1&destination=' + encodedDest + '&travelmode=transit';
-  if (encodedOrigin) url += '&origin=' + encodedOrigin;
-  window.open(url, '_blank', 'noopener');
-}
-
-// ====== TRANSPORT PAGE ======
+// ====== TRANSPORT PAGE — dynamic from DAYS ======
 function buildTransportPage() {
-  document.getElementById('transportList').innerHTML = TRANSPORT_OVERVIEW.map((t, i) => `
-    <div class="trans-item ${t.important ? 'important' : ''}" onclick="openTransportDetail(${i})">
-      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px;">
-        <div style="font-size:13px;font-weight:500;flex:1;">${t.from} → ${t.to}</div>
-        <div style="font-size:11px;color:var(--muted);margin-left:8px;">${t.date}</div>
-      </div>
-      <div style="font-size:12px;color:#3B82F6;margin-bottom:4px;">🚇 ${t.summary}</div>
-      <div style="display:flex;gap:16px;font-size:11px;color:var(--muted);">
-        <span>⏱ ${t.time}</span><span>💴 ${t.cost}</span>
-      </div>
-    </div>`).join('');
+  renderTransportPage();
 }
 
-function openTransportDetail(i) {
-  const t = TRANSPORT_OVERVIEW[i];
-  openItemDetail(t.dayIdx, t.itemIdx);
+function renderTransportPage() {
+  const list = document.getElementById('transportList');
+  if (!list) return;
+
+  // Collect all transport items across all days, in order
+  const allTransport = [];
+  DAYS.forEach((day, dayIdx) => {
+    day.items.forEach((item, itemIdx) => {
+      if (item.type === 'transport' || item._autoTransport) {
+        allTransport.push({ day, dayIdx, item, itemIdx });
+      }
+    });
+  });
+
+  if (!allTransport.length) {
+    list.innerHTML = '<div style="padding:40px 20px;text-align:center;color:var(--muted);font-size:14px;">尚無交通資訊</div>';
+    return;
+  }
+
+  // Group by day
+  const byDay = {};
+  allTransport.forEach(entry => {
+    const key = entry.dayIdx;
+    if (!byDay[key]) byDay[key] = [];
+    byDay[key].push(entry);
+  });
+
+  let html = '';
+  Object.keys(byDay).sort((a,b) => +a - +b).forEach(dayIdx => {
+    const entries = byDay[dayIdx];
+    const day = DAYS[dayIdx];
+    html += `<div style="padding:10px 20px 4px;font-size:12px;font-weight:500;color:var(--muted);letter-spacing:.5px;display:flex;align-items:center;gap:8px;">
+      <span style="background:var(--ink);color:white;border-radius:8px;padding:2px 8px;font-size:11px;">${day.label}</span>
+      <span>${day.date} ${day.tag}</span>
+    </div>`;
+    entries.forEach(({ item, dayIdx: di, itemIdx }) => {
+      const tMins = getTransportMins(item);
+      const depart = item._departTime || item.arrivalTime || '—';
+      const arrive = item._calcArrival || '—';
+      const durStr = tMins ? (tMins >= 60 ? `${Math.floor(tMins/60)}h${tMins%60?tMins%60+'m':''}` : `${tMins}分`) : '待查詢';
+      const isImportant = item.status === 'ok' || item.lockedArrival;
+      const conflictBadge = item._conflict
+        ? `<span style="font-size:10px;background:#FEE2E2;color:#EF4444;border-radius:6px;padding:1px 5px;">⚠️ 衝突</span>` : '';
+
+      html += `<div class="trans-item${isImportant ? ' important' : ''}" onclick="openItemDetail(${di},${itemIdx})">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:4px;">
+          <div style="font-size:13px;font-weight:500;flex:1;color:#3B82F6;">${item.name}</div>
+          ${conflictBadge}
+        </div>
+        <div style="display:flex;align-items:center;gap:6px;font-size:12px;margin-bottom:4px;">
+          ${depart !== '—' ? `<span style="font-weight:500;">${depart}</span><span style="color:var(--muted);">→</span><span style="color:var(--sakura-deep);font-weight:500;">${arrive}</span>` : ''}
+          <span style="background:#EFF6FF;color:#3B82F6;border-radius:20px;padding:1px 7px;font-size:11px;">⏱ ${durStr}</span>
+          ${item.statusText ? `<span style="font-size:11px;color:var(--muted);">${item.statusText}</span>` : ''}
+        </div>
+        ${item.routes && item.routes.length ? `<div style="font-size:11px;color:var(--muted);">🚇 ${item.routes.length} 種路線方案 · 點入查看</div>` : ''}
+      </div>`;
+    });
+  });
+  list.innerHTML = html;
 }
 
 // ====== PARTICIPANTS ======
