@@ -9,8 +9,8 @@
 :root{--sakura:#E8A0B0;--sakura-deep:#C4637A;--ink:#1A1A2E;--ink-soft:#2D2D44;--cream:#FDF8F3;--gold:#D4A853;--jade:#4ECDC4;--muted:#8A8A9A;--card:#FFFFFF;--surface:#F5F0EA;--border:rgba(0,0,0,0.08);--shadow:0 2px 12px rgba(0,0,0,0.08);--radius:16px;--tab-h:64px;}
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
 body{font-family:'Noto Sans TC',sans-serif;background:var(--cream);color:var(--ink);min-height:100vh;}
-#app-wrap{max-width:480px;margin:0 auto;position:relative;overflow-x:hidden;min-height:100vh;}
-.app-header{background:var(--ink);color:white;padding:20px 20px 16px;position:sticky;top:0;z-index:100;}
+#app-wrap{max-width:480px;margin:0 auto;position:relative;overflow-x:hidden;}
+.app-header{background:var(--ink);color:white;padding:20px 20px 0;position:sticky;top:0;z-index:100;}
 .app-header h1{font-family:'DM Serif Display',serif;font-size:22px;}
 .subtitle{font-size:12px;color:var(--sakura);margin-top:2px;letter-spacing:1px;}
 .header-row{display:flex;align-items:center;justify-content:space-between;}
@@ -18,9 +18,9 @@ body{font-family:'Noto Sans TC',sans-serif;background:var(--cream);color:var(--i
 .nav-item{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;cursor:pointer;color:var(--muted);font-size:10px;padding-bottom:4px;border:none;background:none;font-family:inherit;}
 .nav-item.active{color:var(--sakura-deep);}
 .nav-icon{font-size:20px;line-height:1;}
-.page{display:none;padding-bottom:calc(var(--tab-h) + 16px);min-height:100vh;}
+.page{display:none;padding-bottom:calc(var(--tab-h) + 16px);}
 .page.active{display:block;}
-.day-strip{display:flex;gap:8px;overflow-x:auto;padding:12px 20px;background:var(--ink);scrollbar-width:none;}
+.day-strip{display:flex;gap:8px;overflow-x:auto;padding:10px 20px 12px;background:var(--ink);scrollbar-width:none;}
 .day-strip::-webkit-scrollbar{display:none;}
 .day-chip{flex-shrink:0;background:rgba(255,255,255,0.12);color:white;border-radius:20px;padding:6px 14px;font-size:12px;cursor:pointer;transition:all .2s;border:1.5px solid transparent;white-space:nowrap;}
 .day-chip.active{background:var(--sakura);border-color:var(--sakura);font-weight:500;}
@@ -175,11 +175,11 @@ body{font-family:'Noto Sans TC',sans-serif;background:var(--cream);color:var(--i
       <div style="font-size:11px;color:rgba(255,255,255,.4);margin-top:2px;">東京 → 大阪</div>
     </div>
   </div>
+  <div class="day-strip" id="dayStrip"></div>
 </div>
 
 <!-- PAGES -->
 <div id="page-schedule" class="page active">
-  <div class="day-strip" id="dayStrip"></div>
   <div id="swiperTrack"></div>
 </div>
 
@@ -271,9 +271,12 @@ body{font-family:'Noto Sans TC',sans-serif;background:var(--cream);color:var(--i
     <div class="summary-card"><div class="summary-num" id="expCount">0</div><div class="summary-label">筆記錄</div></div>
   </div>
   <div class="day-filter" id="expFilter"></div>
-  <div id="expenseList"></div>
+  <div id="expenseList"></div></div>
+
+</div><!-- end app-wrap -->
+
+<!-- FIXED UI (outside app-wrap so position:fixed works) -->
   <button class="add-expense-btn" onclick="openAddExpense()">＋</button>
-</div>
 
 <!-- BOTTOM NAV -->
 <nav class="bottom-nav">
@@ -282,7 +285,6 @@ body{font-family:'Noto Sans TC',sans-serif;background:var(--cream);color:var(--i
   <button class="nav-item" onclick="switchPage('people',this)"><span class="nav-icon">👥</span><span>成員</span></button>
   <button class="nav-item" onclick="switchPage('expense',this)"><span class="nav-icon">💰</span><span>記帳</span></button>
 </nav>
-</div><!-- end app-wrap -->
 
 <!-- DETAIL MODAL -->
 <div class="modal-overlay" id="detailModal" onclick="closeModal('detailModal')">
@@ -710,6 +712,9 @@ function switchPage(name, el) {
   document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
   document.getElementById('page-' + name).classList.add('active');
   el.classList.add('active');
+  // Show day-strip only on schedule page
+  const strip = document.getElementById('dayStrip');
+  if (strip) strip.style.display = (name === 'schedule') ? 'flex' : 'none';
   if (name === 'expense') renderExpenses();
   if (name === 'people') renderParticipants();
   if (name === 'transport') renderTransportPage();
