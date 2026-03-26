@@ -252,6 +252,10 @@ body{font-family:'Noto Sans TC',sans-serif;background:var(--cream);color:var(--i
       <div>⚪ <strong>僅觀看</strong> — 只能瀏覽行程資訊</div>
     </div>
   </div>
+  <div class="section-card">
+    <div class="section-title">行程資料管理</div>
+    <div style="font-size:13px;color:var(--muted);margin-bottom:10px;">所有行程修改已自動儲存，重新整理頁面不會遺失。</div>
+    <button onclick="resetDays()" style="width:100%;background:#FFF5F5;color:#EF4444;border:0.5px solid #FCA5A5;border-radius:12px;padding:12px;font-size:13px;cursor:pointer;font-family:inherit;">↩ 還原預設行程（清除所有修改）</button>
 </div>
 
 <div id="page-expense" class="page">
@@ -506,9 +510,15 @@ let currentDay = 0;
 
 function saveMembers(){ localStorage.setItem('jp_members', JSON.stringify(members)); }
 function saveExpenses(){ localStorage.setItem('jp_expenses', JSON.stringify(expenses)); }
+function saveDays(){ localStorage.setItem('jp_days', JSON.stringify(DAYS)); }
+function resetDays(){
+  if (!confirm('確定要還原為預設行程嗎？所有修改將會遺失。')) return;
+  localStorage.removeItem('jp_days');
+  location.reload();
+}
 
 // ====== DATA ======
-const DAYS = [
+const DEFAULT_DAYS = [
   { date:'4/27', label:'Day1', tag:'東京', tagColor:'#3B82F6', items:[
     { type:'flight', icon:'✈️', name:'CI0222 桃園→羽田', time:'18:05', location:'台灣桃園機場', status:'ok', statusText:'已訂票', mapQuery:'台灣桃園國際機場', notes:'抵達羽田約21:30，第三航廈入境。記得到行李轉盤拿行李後通關。', routes:[], nearby:[] },
     { type:'transport', icon:'🚌', name:'羽田機場 → 赤坂格蘭貝爾酒店', time:'抵達後', location:'羽田T3 → 赤坂見附', status:'pending', statusText:'⚠️ 尚未預定', mapQuery:'赤坂グランベルホテル', notes:'飛機約21:00抵達', routes:[
@@ -680,6 +690,7 @@ const DAYS = [
     { type:'flight',icon:'✈️',name:'JX823 關西→台灣',time:'15:10起飛',location:'關西國際機場',status:'ok',statusText:'✅ 已訂票',mapQuery:'関西国際空港 第1ターミナル',notes:'請於12:10前抵達機場，提前3小時辦理登機。記得退稅！',routes:[],nearby:[]},
   ]},
 ];
+let DAYS = JSON.parse(localStorage.getItem('jp_days') || 'null') || DEFAULT_DAYS.map(d => JSON.parse(JSON.stringify(d)));
 
 const TRANSPORT_OVERVIEW = [
   { date:'4/27', from:'羽田機場T3', to:'赤坂格蘭貝爾酒店', time:'約45分', cost:'¥650', summary:'京急線→品川→JR山手線→新橋→Metro銀座線', important:true, dayIdx:0, itemIdx:1 },
@@ -886,10 +897,14 @@ function renderTimelineItems(dayIdx) {
         <div style="margin-top:2px;">${conflictBadge}${transportInfo}${spotInfo}${statusHtml}</div>
         ${hasRoute ? `<div class="tl-transport-tag" style="margin-top:6px;"><span>🚇</span> 路線（${item.routes.length}種）</div>` : ''}
       </div>`;
-    const handle = el.querySelector('.tl-drag-handle');
-    handle.addEventListener('touchstart', onDragTouchStart, { passive: true });
-    handle.addEventListener('touchend', onDragTouchCancel, { passive: true });
-    handle.addEventListener('touchcancel', onDragTouchCancel, { passive: true });
+    try {
+      const handle = el.querySelector('.tl-drag-handle');
+      if (handle) {
+        handle.addEventListener('touchstart', onDragTouchStart, { passive: true });
+        handle.addEventListener('touchend', onDragTouchCancel, { passive: true });
+        handle.addEventListener('touchcancel', onDragTouchCancel, { passive: true });
+      }
+    } catch(e) { console.warn('drag handle error', e); }
     tl.appendChild(el);
   });
 }
@@ -968,6 +983,7 @@ function onDragTouchEnd(e) {
     recalcDayTimes(dayIdx);
     renderTimelineItems(dayIdx);
     renderTransportPage();
+    saveDays();
   }
 }
 
@@ -1015,6 +1031,7 @@ function saveNewSpot() {
   renderDayContent(di);
   goToSlide(di, true);
   renderTransportPage();
+  saveDays();
 }
 
 // ====== EDIT / MOVE / DELETE ======
@@ -1078,6 +1095,8 @@ function saveEditSpot() {
     renderTimelineItems(_editDayIdx);
   }
   closeModal('editSpotModal');
+  renderTransportPage();
+  saveDays();
 }
 
 function deleteSpot() {
@@ -1086,6 +1105,7 @@ function deleteSpot() {
   syncTransportCards(_editDayIdx);
   closeModal('editSpotModal');
   renderDayContent(_editDayIdx);
+  saveDays();
 }
 
 // ====== TIME CALCULATION ENGINE (問題 2, 3, 4) ======
@@ -1268,7 +1288,17 @@ let selectedRouteIdx = 0;
 
 function openItemDetail(dayIdx, itemIdx) {
   selectedRouteIdx = 0;
-  renderItemDetail(dayIdx, itemIdx, selectedRouteIdx);
+  try {
+    renderItemDetail(dayIdx, itemIdx, selectedRouteIdx);
+  } catch(e) {
+    // Fallback: show basic info if render crashes
+    const item = DAYS[dayIdx] && DAYS[dayIdx].items[itemIdx];
+    document.getElementById('modalContent').innerHTML = `
+      <div style="font-size:17px;font-weight:500;margin-bottom:8px;">${item ? item.name : '景點'}</div>
+      <div style="font-size:13px;color:var(--muted);margin-bottom:16px;">${item ? item.location || '' : ''}</div>
+      <div style="font-size:12px;color:#EF4444;background:#FFF5F5;padding:10px;border-radius:8px;">顯示詳情時發生錯誤，請重新點選。</div>`;
+    console.error('renderItemDetail error:', e);
+  }
   openModal('detailModal');
 }
 
@@ -1280,31 +1310,43 @@ function renderItemDetail(dayIdx, itemIdx, routeIdx) {
   const destQuery   = item._toQuery || item.mapQuery;
   const departTime  = item._departTime || item.arrivalTime || null;
 
-  const transitUrl = mapsTransitUrl(encodeURIComponent(originQuery), encodeURIComponent(destQuery), departTime, dayIdx);
-  const searchUrl  = 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(item.mapQuery);
-  const betweenUrl = mapsTransitUrl(encodeURIComponent(originQuery), encodeURIComponent(destQuery), departTime, dayIdx);
+  // 即時路線查詢: uses NOW (no departure_time) → Google Maps shows live best route
+  const encO = encodeURIComponent(originQuery);
+  const encD = encodeURIComponent(destQuery);
+  const transitUrl = originQuery
+    ? `https://www.google.com/maps/dir/?api=1&origin=${encO}&destination=${encD}&travelmode=transit`
+    : `https://www.google.com/maps/dir/?api=1&destination=${encD}&travelmode=transit`;
+
+  // 查看景點位置: search pin
+  const searchUrl = 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(item.mapQuery);
+
+  // 顯示兩景點間路線 (排定時間): passes departure_time based on trip date + scheduled depart time
+  const betweenUrl = mapsTransitUrl(encO, encD, departTime, dayIdx);
   const encDest = encodeURIComponent(item.mapQuery);
 
   // Route selector
   let routeHtml = '';
   if (item.routes && item.routes.length > 0) {
-    const tabs = item.routes.map((r, i) => `<button class="route-tab ${i === routeIdx ? 'active' : ''}" onclick="switchRoute(${dayIdx},${itemIdx},${i})">${r.label}</button>`).join('');
-    const r = item.routes[routeIdx];
-    const stepsHtml = r.steps.map(s => `<div class="route-step"><div class="route-icon">${s.icon}</div><div style="flex:1"><div class="route-line">${s.line}</div><div class="route-sub">${s.sub}</div></div></div>`).join('');
+    const safeRouteIdx = Math.min(routeIdx, item.routes.length - 1);
+    const tabs = item.routes.map((r, i) => `<button class="route-tab ${i === safeRouteIdx ? 'active' : ''}" onclick="switchRoute(${dayIdx},${itemIdx},${i})">${r.label || '路線'}</button>`).join('');
+    const r = item.routes[safeRouteIdx];
+    const steps = (r && r.steps) ? r.steps : [];
+    const stepsHtml = steps.map(s => `<div class="route-step"><div class="route-icon">${s.icon||'🚇'}</div><div style="flex:1"><div class="route-line">${s.line||''}</div><div class="route-sub">${s.sub||''}</div></div></div>`).join('');
     routeHtml = `
       <div style="font-size:13px;font-weight:500;margin:16px 0 8px;">🚇 交通路線</div>
       <div class="route-tabs">${tabs}</div>
       <div class="route-card">
         ${stepsHtml}
-        <div class="route-meta"><span>⏱ ${r.time}</span><span>💴 ${r.cost}</span></div>
+        <div class="route-meta"><span>⏱ ${r ? r.time : ''}</span><span>💴 ${r ? r.cost : ''}</span></div>
       </div>`;
   }
 
   // Nearby
   let nearbyHtml = '';
-  if (item.nearby && item.nearby.length > 0) {
+  const nearbyArr = Array.isArray(item.nearby) ? item.nearby : [];
+  if (nearbyArr.length > 0) {
     nearbyHtml = `<div style="font-size:13px;font-weight:500;margin:16px 0 8px;">📍 周邊推薦</div>
-      <div class="nearby-grid">${item.nearby.map(n => `<div class="nearby-card" onclick="window.open('https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(n.name)}','_blank','noopener')"><div class="nearby-name">${n.name}</div><div class="nearby-dist">${n.dist}</div></div>`).join('')}</div>`;
+      <div class="nearby-grid">${nearbyArr.map(n => `<div class="nearby-card" onclick="window.open('https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(n.name||'')}','_blank','noopener')"><div class="nearby-name">${n.name||''}</div><div class="nearby-dist">${n.dist||''}</div></div>`).join('')}</div>`;
   }
 
   // Time info line
@@ -1346,9 +1388,9 @@ function renderItemDetail(dayIdx, itemIdx, routeIdx) {
     ${routeHtml}
     ${nearbyHtml}
     <div style="margin-top:16px;display:flex;flex-direction:column;gap:8px;">
-      <button class="btn-map" onclick="window.open('${transitUrl}','_blank','noopener')">🚇 即時路線查詢</button>
+      <button class="btn-map" onclick="window.open('${transitUrl}','_blank','noopener')">🚇 即時路線查詢（現在出發）</button>
       <button style="display:flex;align-items:center;justify-content:center;gap:6px;width:100%;background:#4285F4;color:white;border:none;border-radius:12px;padding:12px;font-size:14px;font-family:inherit;font-weight:500;cursor:pointer;" onclick="window.open('${searchUrl}','_blank','noopener')">📍 查看景點位置</button>
-      <button class="btn-nav" onclick="window.open('${betweenUrl}','_blank','noopener')">🗺 顯示兩景點間路線</button>
+      <button class="btn-nav" onclick="window.open('${betweenUrl}','_blank','noopener')">🗓 依排定時間查詢路線${departTime ? '（' + departTime + ' 出發）' : ''}</button>
     </div>`;
   document.getElementById('detailModal').dataset.dayIdx = dayIdx;
   document.getElementById('detailModal').dataset.itemIdx = itemIdx;
@@ -1440,6 +1482,7 @@ function saveTimeEditor() {
   recalcDayTimes(_timeDayIdx);
   renderTimelineItems(_timeDayIdx);
   renderTransportPage();
+  saveDays();
   closeModal('timeEditorModal');
   renderItemDetail(_timeDayIdx, _timeItemIdx, selectedRouteIdx);
 }
