@@ -28,7 +28,15 @@ body{font-family:'Noto Sans TC',sans-serif;background:var(--cream);color:var(--i
 .day-badge{background:var(--sakura-deep);color:white;border-radius:12px;padding:6px 16px;font-size:13px;font-weight:500;}
 .timeline{position:relative;}
 .timeline::before{content:'';position:absolute;left:18px;top:0;bottom:0;width:1.5px;background:linear-gradient(to bottom,var(--sakura),var(--jade));}
-.tl-item{display:flex;gap:14px;margin-bottom:12px;position:relative;}
+.tl-item{display:flex;gap:14px;margin-bottom:12px;position:relative;transition:opacity .2s,transform .15s;touch-action:none;}
+.tl-item.dragging{opacity:0.4;transform:scale(0.97);}
+.tl-item.drag-over{border-top:2.5px solid var(--sakura-deep);}
+.tl-drag-handle{width:20px;display:flex;align-items:center;justify-content:center;color:#C0C0C8;cursor:grab;font-size:16px;flex-shrink:0;touch-action:none;user-select:none;}
+.tl-drag-handle:active{cursor:grabbing;}
+/* SWIPE PAGE */
+#scheduleSwiper{overflow:hidden;width:100%;}
+.swiper-track{display:flex;width:100%;transition:transform .3s cubic-bezier(.25,.46,.45,.94);}
+.swiper-slide{min-width:100%;width:100%;}
 .tl-dot{width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0;z-index:1;cursor:pointer;transition:transform .2s;border:2px solid white;box-shadow:var(--shadow);}
 .tl-dot:active{transform:scale(0.92);}
 .dot-spot{background:#FFF5F7;}.dot-food{background:#FFF9E6;}.dot-transport{background:#EFF6FF;}.dot-hotel{background:#ECFDF5;}.dot-concert{background:#FFF0F0;}.dot-flight{background:#F0F4FF;}.dot-shop{background:#F5F0FF;}
@@ -157,7 +165,9 @@ body{font-family:'Noto Sans TC',sans-serif;background:var(--cream);color:var(--i
 <!-- PAGES -->
 <div id="page-schedule" class="page active">
   <div class="day-strip" id="dayStrip"></div>
-  <div class="timeline-wrap" id="timelineWrap"></div>
+  <div id="scheduleSwiper">
+    <div class="swiper-track" id="swiperTrack"></div>
+  </div>
 </div>
 
 <!-- ADD SPOT MODAL -->
@@ -687,6 +697,9 @@ function switchPage(name, el) {
 
 // ====== SCHEDULE ======
 let _editDayIdx = -1, _editItemIdx = -1;
+let _dragSrcDay = -1, _dragSrcIdx = -1;
+// Touch drag state
+let _td = null; // {el, clone, startY, lastY, srcDay, srcIdx}
 
 function buildDayStrip() {
   const strip = document.getElementById('dayStrip');
@@ -703,7 +716,7 @@ function buildDayStrip() {
 function selectDay(i) {
   currentDay = i;
   document.querySelectorAll('.day-chip').forEach((c, ci) => c.classList.toggle('active', ci === i));
-  renderTimeline();
+  goToSlide(i, false);
 }
 
 function typeClass(t) {
@@ -713,46 +726,195 @@ function typeIcon(t) {
   return ({spot:'⛩️',food:'🍽️',shop:'🛍️',hotel:'🏨',transport:'🚇',concert:'🎵',flight:'✈️'})[t] || '📍';
 }
 
-function renderTimeline() {
-  const d = DAYS[currentDay];
-  const wrap = document.getElementById('timelineWrap');
+// ---- Build all slides once, then just refresh content ----
+function buildSwiperSlides() {
+  const track = document.getElementById('swiperTrack');
+  track.innerHTML = '';
+  DAYS.forEach((d, i) => {
+    const slide = document.createElement('div');
+    slide.className = 'swiper-slide';
+    slide.id = 'slide-' + i;
+    const wrap = document.createElement('div');
+    wrap.className = 'timeline-wrap';
+    wrap.id = 'timelineWrap-' + i;
+    slide.appendChild(wrap);
+    track.appendChild(slide);
+  });
+  DAYS.forEach((_, i) => renderDayContent(i));
+  goToSlide(currentDay, false);
+  initSwipe();
+}
+
+function goToSlide(i, animate = true) {
+  const track = document.getElementById('swiperTrack');
+  if (!animate) track.style.transition = 'none';
+  track.style.transform = `translateX(-${i * 100}%)`;
+  if (!animate) requestAnimationFrame(() => { track.style.transition = ''; });
+  currentDay = i;
+  document.querySelectorAll('.day-chip').forEach((c, ci) => c.classList.toggle('active', ci === i));
+  // Scroll day chip into view
+  const chips = document.querySelectorAll('.day-chip');
+  if (chips[i]) chips[i].scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+}
+
+function renderTimeline() { renderDayContent(currentDay); }
+
+function renderDayContent(dayIdx) {
+  const d = DAYS[dayIdx];
+  const wrap = document.getElementById('timelineWrap-' + dayIdx);
+  if (!wrap) return;
   wrap.innerHTML = `<div class="day-header">
     <div class="day-badge">${d.label}</div>
     <div style="flex:1">
       <div style="font-size:15px;font-weight:500;">${d.date}</div>
       <div style="font-size:11px;color:${d.tagColor};margin-top:2px;">${d.tag}</div>
     </div>
-    <button onclick="openAddSpot()" style="background:var(--sakura-deep);color:white;border:none;border-radius:20px;padding:7px 14px;font-size:13px;font-weight:500;cursor:pointer;font-family:inherit;">＋ 新增</button>
-  </div><div class="timeline" id="tlInner"></div>`;
-  const tl = document.getElementById('tlInner');
+    <button onclick="openAddSpot(${dayIdx})" style="background:var(--sakura-deep);color:white;border:none;border-radius:20px;padding:7px 14px;font-size:13px;font-weight:500;cursor:pointer;font-family:inherit;white-space:nowrap;">＋ 新增</button>
+  </div><div class="timeline" id="tlInner-${dayIdx}"></div>`;
+  renderTimelineItems(dayIdx);
+}
+
+function renderTimelineItems(dayIdx) {
+  const d = DAYS[dayIdx];
+  const tl = document.getElementById('tlInner-' + dayIdx);
+  if (!tl) return;
+  tl.innerHTML = '';
   d.items.forEach((item, idx) => {
     const el = document.createElement('div');
     el.className = 'tl-item';
-    const statusHtml = item.status ? `<span class="tl-status status-${item.status}">${item.statusText}</span>` : (item.statusText ? `<span style="font-size:11px;color:var(--muted);margin-top:4px;display:inline-block;">${item.statusText}</span>` : '');
+    el.dataset.dayIdx = dayIdx;
+    el.dataset.itemIdx = idx;
+    const statusHtml = item.status
+      ? `<span class="tl-status status-${item.status}">${item.statusText}</span>`
+      : (item.statusText ? `<span style="font-size:11px;color:var(--muted);margin-top:4px;display:inline-block;">${item.statusText}</span>` : '');
     const hasRoute = item.routes && item.routes.length > 0;
     const isCustom = item._custom || item._autoTransport;
     el.innerHTML = `
-      <div class="tl-dot ${typeClass(item.type)}" onclick="openItemDetail(${currentDay},${idx})">${item.icon}</div>
-      <div class="tl-card" onclick="openItemDetail(${currentDay},${idx})">
+      <div class="tl-drag-handle" data-day="${dayIdx}" data-idx="${idx}">⠿</div>
+      <div class="tl-dot ${typeClass(item.type)}" onclick="openItemDetail(${dayIdx},${idx})">${item.icon}</div>
+      <div class="tl-card" onclick="openItemDetail(${dayIdx},${idx})">
         <div class="tl-card-top">
           <div class="tl-name">${item.name}${isCustom ? ' <span style="font-size:10px;background:#FFF0F4;color:var(--sakura-deep);border-radius:6px;padding:1px 5px;">自訂</span>' : ''}</div>
           <div style="display:flex;align-items:center;gap:4px;flex-shrink:0;">
             <span class="tl-time">${item.time}</span>
-            <button onclick="event.stopPropagation();openEditSpot(${currentDay},${idx})" style="background:var(--surface);border:none;border-radius:8px;padding:3px 8px;font-size:11px;color:var(--muted);cursor:pointer;font-family:inherit;margin-left:2px;">✎</button>
+            <button onclick="event.stopPropagation();openEditSpot(${dayIdx},${idx})" style="background:var(--surface);border:none;border-radius:8px;padding:3px 8px;font-size:11px;color:var(--muted);cursor:pointer;font-family:inherit;">✎</button>
           </div>
         </div>
         ${item.location ? `<div class="tl-location"><span style="font-size:10px;">📍</span>${item.location}</div>` : ''}
         ${statusHtml}
         ${hasRoute ? `<div class="tl-transport-tag"><span>🚇</span> 查看路線（${item.routes.length}種）</div>` : ''}
       </div>`;
+    // Touch drag on handle
+    const handle = el.querySelector('.tl-drag-handle');
+    handle.addEventListener('touchstart', onDragTouchStart, { passive: false });
     tl.appendChild(el);
   });
 }
 
+// ---- SWIPE LEFT/RIGHT between days ----
+function initSwipe() {
+  const swiper = document.getElementById('scheduleSwiper');
+  let sx = 0, sy = 0, moved = false, swiping = false;
+  swiper.addEventListener('touchstart', e => {
+    if (_td) return; // don't swipe while dragging item
+    sx = e.touches[0].clientX;
+    sy = e.touches[0].clientY;
+    moved = false; swiping = false;
+  }, { passive: true });
+  swiper.addEventListener('touchmove', e => {
+    if (_td) return;
+    const dx = e.touches[0].clientX - sx;
+    const dy = e.touches[0].clientY - sy;
+    if (!moved) {
+      if (Math.abs(dx) > Math.abs(dy) + 5) { swiping = true; moved = true; }
+      else if (Math.abs(dy) > Math.abs(dx) + 5) { moved = true; } // vertical scroll
+    }
+    if (swiping) e.preventDefault();
+  }, { passive: false });
+  swiper.addEventListener('touchend', e => {
+    if (_td || !swiping) return;
+    const dx = e.changedTouches[0].clientX - sx;
+    if (dx < -50 && currentDay < DAYS.length - 1) goToSlide(currentDay + 1);
+    else if (dx > 50 && currentDay > 0) goToSlide(currentDay - 1);
+  }, { passive: true });
+}
+
+// ---- TOUCH DRAG to reorder ----
+function onDragTouchStart(e) {
+  e.stopPropagation();
+  if (e.touches.length !== 1) return;
+  const handle = e.currentTarget;
+  const dayIdx = parseInt(handle.dataset.day);
+  const itemIdx = parseInt(handle.dataset.idx);
+  const el = handle.closest('.tl-item');
+  const touch = e.touches[0];
+
+  const rect = el.getBoundingClientRect();
+  const clone = el.cloneNode(true);
+  clone.style.cssText = `position:fixed;left:${rect.left}px;top:${rect.top}px;width:${rect.width}px;z-index:999;opacity:0.9;pointer-events:none;background:white;border-radius:12px;box-shadow:0 8px 32px rgba(0,0,0,0.18);transition:none;`;
+  document.body.appendChild(clone);
+  el.classList.add('dragging');
+
+  _td = { el, clone, startY: touch.clientY, offsetY: touch.clientY - rect.top, dayIdx, itemIdx, currentTarget: itemIdx };
+
+  document.addEventListener('touchmove', onDragTouchMove, { passive: false });
+  document.addEventListener('touchend', onDragTouchEnd, { passive: true });
+}
+
+function onDragTouchMove(e) {
+  if (!_td) return;
+  e.preventDefault();
+  const touch = e.touches[0];
+  const y = touch.clientY;
+  _td.clone.style.top = (y - _td.offsetY) + 'px';
+
+  // Find which item we're hovering over
+  const tl = document.getElementById('tlInner-' + _td.dayIdx);
+  if (!tl) return;
+  const items = [...tl.querySelectorAll('.tl-item:not(.dragging)')];
+  let target = _td.currentTarget;
+  items.forEach((item, i) => {
+    const rect = item.getBoundingClientRect();
+    const mid = rect.top + rect.height / 2;
+    if (y < mid && i <= target) target = i;
+    else if (y >= mid && i >= target) target = i;
+  });
+  items.forEach(item => item.style.borderTop = '');
+  if (items[target]) items[target].style.borderTop = '2.5px solid var(--sakura-deep)';
+  _td.currentTarget = target;
+}
+
+function onDragTouchEnd(e) {
+  if (!_td) return;
+  document.removeEventListener('touchmove', onDragTouchMove);
+  document.removeEventListener('touchend', onDragTouchEnd);
+
+  const { el, clone, dayIdx, itemIdx, currentTarget } = _td;
+  _td = null;
+
+  clone.remove();
+  el.classList.remove('dragging');
+
+  const tl = document.getElementById('tlInner-' + dayIdx);
+  if (tl) tl.querySelectorAll('.tl-item').forEach(i => i.style.borderTop = '');
+
+  // Reorder if moved
+  let newIdx = currentTarget;
+  if (newIdx > itemIdx) newIdx++; // account for removed element
+  if (newIdx !== itemIdx && newIdx !== itemIdx + 1) {
+    const items = DAYS[dayIdx].items;
+    const [moved] = items.splice(itemIdx, 1);
+    const insertAt = newIdx > itemIdx ? newIdx - 1 : newIdx;
+    items.splice(insertAt, 0, moved);
+    renderTimelineItems(dayIdx);
+  }
+}
+
 // ====== ADD SPOT ======
-function openAddSpot() {
+function openAddSpot(fromDay) {
+  const di = (fromDay !== undefined) ? fromDay : currentDay;
   const daySelect = document.getElementById('spotDayInput');
-  daySelect.innerHTML = DAYS.map((d, i) => `<option value="${i}" ${i === currentDay ? 'selected' : ''}>${d.date} ${d.label}</option>`).join('');
+  daySelect.innerHTML = DAYS.map((d, i) => `<option value="${i}" ${i === di ? 'selected' : ''}>${d.date} ${d.label}</option>`).join('');
   refreshSpotPositions('spotDayInput', 'spotPositionInput', -1);
   daySelect.onchange = () => refreshSpotPositions('spotDayInput', 'spotPositionInput', -1);
   document.getElementById('spotNameInput').value = '';
@@ -789,7 +951,8 @@ function saveNewSpot() {
   closeModal('addSpotModal');
   currentDay = di;
   buildDayStrip();
-  renderTimeline();
+  renderDayContent(di);
+  goToSlide(di, true);
 }
 
 // ====== EDIT / MOVE / DELETE ======
@@ -830,16 +993,20 @@ function saveEditSpot() {
     autoInjectTransport(newDay, newPos + 1);
     currentDay = newDay;
     buildDayStrip();
+    if (newDay !== _editDayIdx) renderDayContent(_editDayIdx);
+    renderDayContent(newDay);
+    goToSlide(newDay, true);
+  } else {
+    renderDayContent(_editDayIdx);
   }
   closeModal('editSpotModal');
-  renderTimeline();
 }
 
 function deleteSpot() {
   if (!confirm(`確認移除「${DAYS[_editDayIdx].items[_editItemIdx].name}」？`)) return;
   DAYS[_editDayIdx].items.splice(_editItemIdx, 1);
   closeModal('editSpotModal');
-  renderTimeline();
+  renderDayContent(_editDayIdx);
 }
 
 // ====== AUTO TRANSPORT INJECTION (問題3) ======
@@ -856,14 +1023,23 @@ function autoInjectTransport(dayIdx, insertedIdx) {
 function makeAutoTransport(fromName, toName, fromQuery, toQuery) {
   return {
     type:'transport', icon:'🚇',
-    name:`${fromName.slice(0,12)} → ${toName.slice(0,12)}`,
-    time:'待定', location:`${fromName.slice(0,12)} → ${toName.slice(0,12)}`,
-    status:'pending', statusText:'⚠️ 請確認交通方式',
+    name:`${fromName.slice(0,14)} → ${toName.slice(0,14)}`,
+    time:'待定', location:`${fromName.slice(0,14)} → ${toName.slice(0,14)}`,
+    status:'pending', statusText:'⚠️ 點入後查詢即時路線',
     mapQuery: toQuery,
-    notes:'此交通段為自動產生，點下方按鈕查詢 Google Maps 即時路線',
+    notes:`自動產生的交通段。點「即時路線查詢」按鈕可直接在 Google Maps 看到從「${fromName}」到「${toName}」的最佳路線與替代路線。`,
     routes:[
-      { label:'大眾運輸', time:'查詢中', cost:'查詢中', steps:[{ icon:'🗺', line:'點下方 Google Maps 查詢即時路線', sub:`${fromName} → ${toName}` }]},
-      { label:'計程車', time:'依距離', cost:'依距離', steps:[{ icon:'🚕', line:'計程車', sub:`${fromName} → ${toName} 直達` }]},
+      { label:'大眾運輸', time:'點 Google Maps 查詢', cost:'點 Google Maps 查詢',
+        steps:[
+          { icon:'🗺', line:'點下方按鈕查詢即時路線', sub:`Google Maps 將顯示 ${fromName} → ${toName} 所有大眾運輸方案` }
+        ]
+      },
+      { label:'計程車', time:'依距離', cost:'依距離',
+        steps:[{ icon:'🚕', line:'計程車', sub:`${fromName} → ${toName} 直達` }]
+      },
+      { label:'步行', time:'依距離', cost:'免費',
+        steps:[{ icon:'🚶', line:'步行', sub:`${fromName} → ${toName}，點 Google Maps 查詢步行時間` }]
+      },
     ],
     _autoTransport:true, _fromQuery:fromQuery, _toQuery:toQuery,
     nearby:[]
@@ -881,10 +1057,25 @@ function openItemDetail(dayIdx, itemIdx) {
 
 function renderItemDetail(dayIdx, itemIdx, routeIdx) {
   const item = DAYS[dayIdx].items[itemIdx];
-  const mapUrl = `https://maps.google.com/maps?q=${encodeURIComponent(item.mapQuery)}`;
-  const navUrl = `https://maps.google.com/maps?daddr=${encodeURIComponent(item.mapQuery)}&dirflg=r`;
-  const mapsAppUrl = `comgooglemaps://?q=${encodeURIComponent(item.mapQuery)}`;
   const typeLabels = {spot:'景點',food:'餐飲',transport:'交通',hotel:'住宿',concert:'演唱會',flight:'航班',shop:'購物'};
+  const encDest = encodeURIComponent(item.mapQuery);
+  const encFrom = item._fromQuery ? encodeURIComponent(item._fromQuery) : '';
+  const encTo   = item._toQuery   ? encodeURIComponent(item._toQuery)   : encDest;
+
+  // ① 即時路線查詢 (transit, origin+dest if available)
+  const transitUrl = encFrom
+    ? `https://www.google.com/maps/dir/?api=1&origin=${encFrom}&destination=${encTo}&travelmode=transit`
+    : `https://www.google.com/maps/dir/?api=1&destination=${encDest}&travelmode=transit`;
+
+  // ② 查看位置 (search pin)
+  const searchUrl = `https://www.google.com/maps/search/?api=1&query=${encDest}`;
+
+  // ③ 兩景點之間交通路線 — always origin→destination regardless of travelmode (shows all options)
+  const prev = dayIdx >= 0 && itemIdx > 0 ? DAYS[dayIdx].items[itemIdx - 1] : null;
+  const prevQuery = encFrom || (prev ? encodeURIComponent(prev.mapQuery) : '');
+  const betweenUrl = prevQuery
+    ? `https://www.google.com/maps/dir/?api=1&origin=${prevQuery}&destination=${encTo}`
+    : `https://www.google.com/maps/dir/?api=1&destination=${encTo}`;
 
   // Route selector
   let routeHtml = '';
@@ -895,18 +1086,17 @@ function renderItemDetail(dayIdx, itemIdx, routeIdx) {
     routeHtml = `
       <div style="font-size:13px;font-weight:500;margin:16px 0 8px;">🚇 交通路線</div>
       <div class="route-tabs">${tabs}</div>
-      <div class="route-card" id="routeCardDetail">
+      <div class="route-card">
         ${stepsHtml}
         <div class="route-meta"><span>⏱ ${r.time}</span><span>💴 ${r.cost}</span></div>
-      </div>
-      <button class="btn-map" onclick="openGoogleMapsTransit('${encodeURIComponent(item.mapQuery)}','${item._fromQuery ? encodeURIComponent(item._fromQuery) : ''}')">🗺 Google Maps 即時路線查詢</button>`;
+      </div>`;
   }
 
   // Nearby
   let nearbyHtml = '';
   if (item.nearby && item.nearby.length > 0) {
     nearbyHtml = `<div style="font-size:13px;font-weight:500;margin:16px 0 8px;">📍 周邊推薦</div>
-      <div class="nearby-grid">${item.nearby.map(n => `<div class="nearby-card" onclick="openMap('${encodeURIComponent(n.name)}')"><div class="nearby-name">${n.name}</div><div class="nearby-dist">${n.dist}</div></div>`).join('')}</div>`;
+      <div class="nearby-grid">${item.nearby.map(n => `<div class="nearby-card" onclick="window.open('https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(n.name)}','_blank','noopener')"><div class="nearby-name">${n.name}</div><div class="nearby-dist">${n.dist}</div></div>`).join('')}</div>`;
   }
 
   document.getElementById('modalContent').innerHTML = `
@@ -918,11 +1108,11 @@ function renderItemDetail(dayIdx, itemIdx, routeIdx) {
     ${item.statusText ? `<div class="info-row"><div class="info-label">狀態</div><div class="info-value">${item.statusText}</div></div>` : ''}
     ${routeHtml}
     ${nearbyHtml}
-    <div style="margin-top:20px;">
-      <button class="btn-map" onclick="openMap('${encodeURIComponent(item.mapQuery)}')">📍 Google Maps 查看位置</button>
-      <button class="btn-nav" onclick="openMapNav('${encodeURIComponent(item.mapQuery)}')">🧭 Google Maps 導航前往</button>
+    <div style="margin-top:20px;display:flex;flex-direction:column;gap:8px;">
+      <button class="btn-map" onclick="window.open('${transitUrl}','_blank','noopener')">🚇 Google Maps 即時路線查詢</button>
+      <button style="display:flex;align-items:center;justify-content:center;gap:6px;width:100%;background:#4285F4;color:white;border:none;border-radius:12px;padding:12px;font-size:14px;font-family:inherit;font-weight:500;cursor:pointer;opacity:0.85;" onclick="window.open('${searchUrl}','_blank','noopener')">📍 Google Maps 查看位置</button>
+      <button class="btn-nav" onclick="window.open('${betweenUrl}','_blank','noopener')">🗺 Google Maps 顯示兩景點交通路線</button>
     </div>`;
-  // Store for route switching
   document.getElementById('detailModal').dataset.dayIdx = dayIdx;
   document.getElementById('detailModal').dataset.itemIdx = itemIdx;
 }
@@ -1133,7 +1323,7 @@ function closeModal(id) { document.getElementById(id).classList.remove('show'); 
 
 // ====== INIT ======
 buildDayStrip();
-renderTimeline();
+buildSwiperSlides();
 buildTransportPage();
 renderParticipants();
 renderExpenses();
