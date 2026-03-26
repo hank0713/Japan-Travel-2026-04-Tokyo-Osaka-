@@ -462,16 +462,31 @@ body{font-family:'Noto Sans TC',sans-serif;background:var(--cream);color:var(--i
         <input class="form-input" id="editSpotName">
       </div>
       <div class="form-group">
+        <label class="form-label">抵達時間（HH:MM）</label>
+        <input class="form-input" id="editSpotTime" placeholder="例：09:30" type="time">
+      </div>
+      <div class="form-group">
+        <label style="display:flex;align-items:center;gap:10px;cursor:pointer;">
+          <input type="checkbox" id="editSpotLocked" style="width:18px;height:18px;accent-color:var(--sakura-deep);flex-shrink:0;">
+          <span style="font-size:13px;">🔒 鎖定抵達時間（其他景點時間將依此推算）</span>
+        </label>
+      </div>
+      <div class="form-group" id="editStayRow">
+        <label class="form-label">停留時間（分鐘）</label>
+        <input class="form-input" id="editSpotStay" type="number" placeholder="例：60（1小時）">
+        <div style="font-size:11px;color:var(--muted);margin-top:4px;">設定停留時間後，系統會自動計算後續景點的抵達時間</div>
+      </div>
+      <div class="form-group" id="editDurationRow" style="display:none;">
+        <label class="form-label">交通時間（分鐘，選填覆蓋自動偵測）</label>
+        <input class="form-input" id="editSpotDuration" type="number" placeholder="例：45">
+      </div>
+      <div class="form-group">
         <label class="form-label">移到哪一天</label>
         <select class="form-input" id="editSpotDay"></select>
       </div>
       <div class="form-group">
         <label class="form-label">排在第幾項之後</label>
         <select class="form-input" id="editSpotPosition"></select>
-      </div>
-      <div class="form-group">
-        <label class="form-label">時間</label>
-        <input class="form-input" id="editSpotTime">
       </div>
       <div class="form-group">
         <label class="form-label">備注</label>
@@ -775,6 +790,7 @@ function renderDayContent(dayIdx) {
 }
 
 function renderTimelineItems(dayIdx) {
+  recalcDayTimes(dayIdx);
   const d = DAYS[dayIdx];
   const tl = document.getElementById('tlInner-' + dayIdx);
   if (!tl) return;
@@ -784,81 +800,111 @@ function renderTimelineItems(dayIdx) {
     el.className = 'tl-item';
     el.dataset.dayIdx = dayIdx;
     el.dataset.itemIdx = idx;
+    const hasRoute = item.routes && item.routes.length > 0;
+    const isCustom = item._custom || item._autoTransport;
+    const displayTime = item.arrivalTime || item.time || '';
+    const lockIcon = item.lockedArrival ? ' 🔒' : '';
+    const conflictBadge = item._conflict
+      ? `<span style="font-size:10px;background:#FEE2E2;color:#EF4444;border-radius:6px;padding:2px 6px;margin-top:4px;display:inline-block;">⚠️ 時間衝突</span><br>`
+      : '';
+    const stayLine = (item.stayMins && item.type !== 'transport')
+      ? `<span style="font-size:11px;color:var(--muted);">⏱ 停留 ${item.stayMins} 分鐘</span> `
+      : '';
     const statusHtml = item.status
       ? `<span class="tl-status status-${item.status}">${item.statusText}</span>`
       : (item.statusText ? `<span style="font-size:11px;color:var(--muted);margin-top:4px;display:inline-block;">${item.statusText}</span>` : '');
-    const hasRoute = item.routes && item.routes.length > 0;
-    const isCustom = item._custom || item._autoTransport;
     el.innerHTML = `
       <div class="tl-drag-handle" data-day="${dayIdx}" data-idx="${idx}">⠿</div>
       <div class="tl-dot ${typeClass(item.type)}" onclick="openItemDetail(${dayIdx},${idx})">${item.icon}</div>
       <div class="tl-card" onclick="openItemDetail(${dayIdx},${idx})">
         <div class="tl-card-top">
           <div class="tl-name">${item.name}${isCustom ? ' <span style="font-size:10px;background:#FFF0F4;color:var(--sakura-deep);border-radius:6px;padding:1px 5px;">自訂</span>' : ''}</div>
-          <div style="display:flex;align-items:center;gap:4px;flex-shrink:0;">
-            <span class="tl-time">${item.time}</span>
-            <button onclick="event.stopPropagation();openEditSpot(${dayIdx},${idx})" style="background:var(--surface);border:none;border-radius:8px;padding:3px 8px;font-size:11px;color:var(--muted);cursor:pointer;font-family:inherit;">✎</button>
+          <div style="display:flex;align-items:center;gap:3px;flex-shrink:0;">
+            <span class="tl-time" style="${item.lockedArrival ? 'color:var(--sakura-deep);font-weight:500;' : ''}">${displayTime}${lockIcon}</span>
+            <button onclick="event.stopPropagation();openEditSpot(${dayIdx},${idx})" style="background:var(--surface);border:none;border-radius:8px;padding:3px 7px;font-size:11px;color:var(--muted);cursor:pointer;font-family:inherit;">✎</button>
           </div>
         </div>
         ${item.location ? `<div class="tl-location"><span style="font-size:10px;">📍</span>${item.location}</div>` : ''}
-        ${statusHtml}
+        <div style="margin-top:4px;">${conflictBadge}${stayLine}${statusHtml}</div>
         ${hasRoute ? `<div class="tl-transport-tag"><span>🚇</span> 查看路線（${item.routes.length}種）</div>` : ''}
       </div>`;
-    // Touch drag on handle
     const handle = el.querySelector('.tl-drag-handle');
-    handle.addEventListener('touchstart', onDragTouchStart, { passive: false });
+    handle.addEventListener('touchstart', onDragTouchStart, { passive: true });
+    handle.addEventListener('touchend', onDragTouchCancel, { passive: true });
+    handle.addEventListener('touchcancel', onDragTouchCancel, { passive: true });
     tl.appendChild(el);
   });
 }
 
-// ---- SWIPE LEFT/RIGHT between days ----
+// ---- SWIPE LEFT/RIGHT between days — does NOT block vertical scroll ----
 function initSwipe() {
   const swiper = document.getElementById('scheduleSwiper');
-  let sx = 0, sy = 0, moved = false, swiping = false;
+  let sx = 0, sy = 0, gestureDecided = false, isHorizontal = false;
+
   swiper.addEventListener('touchstart', e => {
-    if (_td) return; // don't swipe while dragging item
+    if (_td) return;
+    // Only start swipe detection if NOT touching a drag handle
+    if (e.target.classList.contains('tl-drag-handle')) return;
     sx = e.touches[0].clientX;
     sy = e.touches[0].clientY;
-    moved = false; swiping = false;
+    gestureDecided = false;
+    isHorizontal = false;
   }, { passive: true });
+
   swiper.addEventListener('touchmove', e => {
     if (_td) return;
+    if (e.target.classList.contains('tl-drag-handle')) return;
     const dx = e.touches[0].clientX - sx;
     const dy = e.touches[0].clientY - sy;
-    if (!moved) {
-      if (Math.abs(dx) > Math.abs(dy) + 5) { swiping = true; moved = true; }
-      else if (Math.abs(dy) > Math.abs(dx) + 5) { moved = true; } // vertical scroll
+    if (!gestureDecided) {
+      // Need at least 8px movement before deciding
+      if (Math.abs(dx) < 8 && Math.abs(dy) < 8) return;
+      // If predominantly horizontal AND moving more than 2:1 ratio → swipe
+      isHorizontal = Math.abs(dx) > Math.abs(dy) * 2;
+      gestureDecided = true;
     }
-    if (swiping) e.preventDefault();
+    // Only prevent default for confirmed horizontal swipe (lets vertical scroll work normally)
+    if (isHorizontal) e.preventDefault();
   }, { passive: false });
+
   swiper.addEventListener('touchend', e => {
-    if (_td || !swiping) return;
+    if (_td || !isHorizontal || !gestureDecided) return;
     const dx = e.changedTouches[0].clientX - sx;
-    if (dx < -50 && currentDay < DAYS.length - 1) goToSlide(currentDay + 1);
-    else if (dx > 50 && currentDay > 0) goToSlide(currentDay - 1);
+    if (dx < -60 && currentDay < DAYS.length - 1) goToSlide(currentDay + 1);
+    else if (dx > 60 && currentDay > 0) goToSlide(currentDay - 1);
+    isHorizontal = false;
+    gestureDecided = false;
   }, { passive: true });
 }
 
 // ---- TOUCH DRAG to reorder ----
+// We use a 200ms longpress threshold so brief touches on handle don't accidentally drag
+let _dragTimer = null;
+
 function onDragTouchStart(e) {
-  e.stopPropagation();
   if (e.touches.length !== 1) return;
   const handle = e.currentTarget;
-  const dayIdx = parseInt(handle.dataset.day);
-  const itemIdx = parseInt(handle.dataset.idx);
-  const el = handle.closest('.tl-item');
-  const touch = e.touches[0];
+  // Start a short timer — only begin drag if finger stays on handle
+  _dragTimer = setTimeout(() => {
+    _dragTimer = null;
+    const dayIdx = parseInt(handle.dataset.day);
+    const itemIdx = parseInt(handle.dataset.idx);
+    const el = handle.closest('.tl-item');
+    if (!el) return;
+    const touch = e.touches[0];
+    const rect = el.getBoundingClientRect();
+    const clone = el.cloneNode(true);
+    clone.style.cssText = `position:fixed;left:${rect.left}px;top:${rect.top}px;width:${rect.width}px;z-index:999;opacity:0.9;pointer-events:none;background:white;border-radius:12px;box-shadow:0 8px 32px rgba(0,0,0,0.18);transition:none;`;
+    document.body.appendChild(clone);
+    el.classList.add('dragging');
+    _td = { el, clone, offsetY: touch.clientY - rect.top, dayIdx, itemIdx, currentTarget: itemIdx };
+    document.addEventListener('touchmove', onDragTouchMove, { passive: false });
+    document.addEventListener('touchend', onDragTouchEnd, { passive: true });
+  }, 180);
+}
 
-  const rect = el.getBoundingClientRect();
-  const clone = el.cloneNode(true);
-  clone.style.cssText = `position:fixed;left:${rect.left}px;top:${rect.top}px;width:${rect.width}px;z-index:999;opacity:0.9;pointer-events:none;background:white;border-radius:12px;box-shadow:0 8px 32px rgba(0,0,0,0.18);transition:none;`;
-  document.body.appendChild(clone);
-  el.classList.add('dragging');
-
-  _td = { el, clone, startY: touch.clientY, offsetY: touch.clientY - rect.top, dayIdx, itemIdx, currentTarget: itemIdx };
-
-  document.addEventListener('touchmove', onDragTouchMove, { passive: false });
-  document.addEventListener('touchend', onDragTouchEnd, { passive: true });
+function onDragTouchCancel() {
+  if (_dragTimer) { clearTimeout(_dragTimer); _dragTimer = null; }
 }
 
 function onDragTouchMove(e) {
@@ -888,24 +934,20 @@ function onDragTouchEnd(e) {
   if (!_td) return;
   document.removeEventListener('touchmove', onDragTouchMove);
   document.removeEventListener('touchend', onDragTouchEnd);
-
   const { el, clone, dayIdx, itemIdx, currentTarget } = _td;
   _td = null;
-
   clone.remove();
   el.classList.remove('dragging');
-
   const tl = document.getElementById('tlInner-' + dayIdx);
   if (tl) tl.querySelectorAll('.tl-item').forEach(i => i.style.borderTop = '');
-
-  // Reorder if moved
   let newIdx = currentTarget;
-  if (newIdx > itemIdx) newIdx++; // account for removed element
+  if (newIdx > itemIdx) newIdx++;
   if (newIdx !== itemIdx && newIdx !== itemIdx + 1) {
     const items = DAYS[dayIdx].items;
     const [moved] = items.splice(itemIdx, 1);
     const insertAt = newIdx > itemIdx ? newIdx - 1 : newIdx;
     items.splice(insertAt, 0, moved);
+    recalcDayTimes(dayIdx);
     renderTimelineItems(dayIdx);
   }
 }
@@ -961,8 +1003,14 @@ function openEditSpot(dayIdx, itemIdx) {
   const item = DAYS[dayIdx].items[itemIdx];
   document.getElementById('editSpotSubtitle').textContent = `${DAYS[dayIdx].date} ${DAYS[dayIdx].label} · 第 ${itemIdx+1} 項`;
   document.getElementById('editSpotName').value = item.name;
-  document.getElementById('editSpotTime').value = item.time;
+  document.getElementById('editSpotTime').value = item.arrivalTime || item.time || '';
   document.getElementById('editSpotNotes').value = item.notes || '';
+  document.getElementById('editSpotLocked').checked = !!item.lockedArrival;
+  document.getElementById('editSpotStay').value = item.stayMins || '';
+  document.getElementById('editSpotDuration').value = item.durationMins || '';
+  const isTransport = item.type === 'transport' || item._autoTransport;
+  document.getElementById('editStayRow').style.display = isTransport ? 'none' : 'block';
+  document.getElementById('editDurationRow').style.display = isTransport ? 'block' : 'none';
   const daySelect = document.getElementById('editSpotDay');
   daySelect.innerHTML = DAYS.map((d, i) => `<option value="${i}" ${i === dayIdx ? 'selected' : ''}>${d.date} ${d.label}</option>`).join('');
   refreshEditPositions(dayIdx, itemIdx);
@@ -983,8 +1031,16 @@ function refreshEditPositions(di, currentItemIdx) {
 function saveEditSpot() {
   const item = DAYS[_editDayIdx].items[_editItemIdx];
   item.name = document.getElementById('editSpotName').value.trim() || item.name;
-  item.time = document.getElementById('editSpotTime').value.trim() || item.time;
+  const timeVal = document.getElementById('editSpotTime').value.trim();
+  item.lockedArrival = document.getElementById('editSpotLocked').checked;
+  if (timeVal) { item.arrivalTime = timeVal; item.time = timeVal; }
+  if (!item.lockedArrival) { item.arrivalTime = null; }
+  const stay = parseInt(document.getElementById('editSpotStay').value);
+  item.stayMins = isNaN(stay) ? 0 : stay;
+  const dur = parseInt(document.getElementById('editSpotDuration').value);
+  item.durationMins = isNaN(dur) ? null : dur;
   item.notes = document.getElementById('editSpotNotes').value.trim();
+
   const newDay = parseInt(document.getElementById('editSpotDay').value);
   const newPos = parseInt(document.getElementById('editSpotPosition').value);
   if (newDay !== _editDayIdx || newPos !== _editItemIdx - 1) {
@@ -997,7 +1053,8 @@ function saveEditSpot() {
     renderDayContent(newDay);
     goToSlide(newDay, true);
   } else {
-    renderDayContent(_editDayIdx);
+    recalcDayTimes(_editDayIdx);
+    renderTimelineItems(_editDayIdx);
   }
   closeModal('editSpotModal');
 }
@@ -1009,7 +1066,86 @@ function deleteSpot() {
   renderDayContent(_editDayIdx);
 }
 
-// ====== AUTO TRANSPORT INJECTION (問題3) ======
+// ====== TIME CALCULATION ENGINE (問題 2, 3, 4) ======
+// Each item can have:
+//   arrivalTime: "HH:MM" string (computed or locked)
+//   lockedArrival: boolean  — user has pinned this arrival time
+//   stayMins: number        — minutes spent at this spot (0 for transport)
+//   durationMins: number    — transport travel time in minutes
+
+function parseTime(str) {
+  // Parse "HH:MM" → total minutes from midnight. Returns null if invalid.
+  if (!str) return null;
+  const m = str.match(/^(\d{1,2}):(\d{2})$/);
+  if (!m) return null;
+  return parseInt(m[1]) * 60 + parseInt(m[2]);
+}
+
+function fmtTime(mins) {
+  // Total minutes from midnight → "HH:MM"
+  if (mins == null || isNaN(mins)) return '';
+  const h = Math.floor(((mins % 1440) + 1440) % 1440 / 60);
+  const m = ((mins % 1440) + 1440) % 1440 % 60;
+  return `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}`;
+}
+
+function getTransportMins(item) {
+  // Try to extract minutes from the best route
+  if (item.type !== 'transport' && !item._autoTransport) return null;
+  if (item.durationMins) return item.durationMins;
+  // Try parsing from routes label e.g. "約45分" "2h21m"
+  const label = (item.routes && item.routes[0]) ? item.routes[0].time : item.time;
+  let m = label.match(/(\d+)\s*h.*?(\d+)\s*m/i);
+  if (m) return parseInt(m[1]) * 60 + parseInt(m[2]);
+  m = label.match(/約?(\d+)\s*[分mM]/);
+  if (m) return parseInt(m[1]);
+  m = label.match(/(\d+)\s*[hH]/);
+  if (m) return parseInt(m[1]) * 60;
+  return null;
+}
+
+function recalcDayTimes(dayIdx) {
+  const items = DAYS[dayIdx].items;
+  let cursor = null; // current minute pointer
+
+  for (let i = 0; i < items.length; i++) {
+    const item = items[i];
+
+    // If this item has a locked arrival, snap cursor to it
+    if (item.lockedArrival && item.arrivalTime) {
+      cursor = parseTime(item.arrivalTime);
+    } else if (cursor !== null) {
+      // Auto-compute arrival from cursor
+      item.arrivalTime = fmtTime(cursor);
+      item._computed = true;
+    }
+
+    // Detect conflict: if computed arrival is later than locked arrival of a future item
+    // (we flag it so the UI can show a warning)
+    item._conflict = false;
+    if (item.lockedArrival && cursor !== null) {
+      const locked = parseTime(item.arrivalTime);
+      if (locked !== null && cursor > locked) {
+        item._conflict = true; // we'd arrive later than locked time
+      }
+    }
+
+    // Advance cursor by stay time or transport time
+    if (cursor !== null) {
+      if (item.type === 'transport' || item._autoTransport) {
+        const tMins = getTransportMins(item);
+        if (tMins !== null) cursor += tMins;
+      } else {
+        const stay = item.stayMins || 0;
+        cursor += stay;
+      }
+    }
+  }
+}
+
+function recalcAllDays() {
+  DAYS.forEach((_, i) => recalcDayTimes(i));
+}
 function autoInjectTransport(dayIdx, insertedIdx) {
   const items = DAYS[dayIdx].items;
   const prev = insertedIdx > 0 ? items[insertedIdx - 1] : null;
