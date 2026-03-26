@@ -1,0 +1,842 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>🌸 日本行程 4/27–5/5</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700&family=DM+Serif+Display&display=swap" rel="stylesheet">
+<style>
+:root{--sakura:#E8A0B0;--sakura-deep:#C4637A;--ink:#1A1A2E;--ink-soft:#2D2D44;--cream:#FDF8F3;--gold:#D4A853;--jade:#4ECDC4;--muted:#8A8A9A;--card:#FFFFFF;--surface:#F5F0EA;--border:rgba(0,0,0,0.08);--shadow:0 2px 12px rgba(0,0,0,0.08);--radius:16px;--tab-h:64px;}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+body{font-family:'Noto Sans TC',sans-serif;background:var(--cream);color:var(--ink);min-height:100vh;max-width:480px;margin:0 auto;position:relative;overflow-x:hidden;}
+.app-header{background:var(--ink);color:white;padding:20px 20px 16px;position:sticky;top:0;z-index:100;}
+.app-header h1{font-family:'DM Serif Display',serif;font-size:22px;}
+.subtitle{font-size:12px;color:var(--sakura);margin-top:2px;letter-spacing:1px;}
+.header-row{display:flex;align-items:center;justify-content:space-between;}
+.bottom-nav{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:480px;background:white;border-top:0.5px solid var(--border);display:flex;z-index:200;height:var(--tab-h);box-shadow:0 -4px 20px rgba(0,0,0,0.06);}
+.nav-item{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;cursor:pointer;color:var(--muted);font-size:10px;padding-bottom:4px;border:none;background:none;font-family:inherit;}
+.nav-item.active{color:var(--sakura-deep);}
+.nav-icon{font-size:20px;line-height:1;}
+.page{display:none;padding-bottom:calc(var(--tab-h) + 16px);min-height:100vh;}
+.page.active{display:block;}
+.day-strip{display:flex;gap:8px;overflow-x:auto;padding:12px 20px;background:var(--ink);scrollbar-width:none;}
+.day-strip::-webkit-scrollbar{display:none;}
+.day-chip{flex-shrink:0;background:rgba(255,255,255,0.12);color:white;border-radius:20px;padding:6px 14px;font-size:12px;cursor:pointer;transition:all .2s;border:1.5px solid transparent;white-space:nowrap;}
+.day-chip.active{background:var(--sakura);border-color:var(--sakura);font-weight:500;}
+.timeline-wrap{padding:16px 20px;}
+.day-header{display:flex;align-items:center;gap:12px;margin-bottom:16px;}
+.day-badge{background:var(--sakura-deep);color:white;border-radius:12px;padding:6px 16px;font-size:13px;font-weight:500;}
+.timeline{position:relative;}
+.timeline::before{content:'';position:absolute;left:18px;top:0;bottom:0;width:1.5px;background:linear-gradient(to bottom,var(--sakura),var(--jade));}
+.tl-item{display:flex;gap:14px;margin-bottom:12px;position:relative;}
+.tl-dot{width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0;z-index:1;cursor:pointer;transition:transform .2s;border:2px solid white;box-shadow:var(--shadow);}
+.tl-dot:active{transform:scale(0.92);}
+.dot-spot{background:#FFF5F7;}.dot-food{background:#FFF9E6;}.dot-transport{background:#EFF6FF;}.dot-hotel{background:#ECFDF5;}.dot-concert{background:#FFF0F0;}.dot-flight{background:#F0F4FF;}.dot-shop{background:#F5F0FF;}
+.tl-card{flex:1;background:var(--card);border-radius:var(--radius);padding:12px 14px;box-shadow:var(--shadow);border:0.5px solid var(--border);cursor:pointer;transition:all .2s;}
+.tl-card:active{transform:scale(0.98);}
+.tl-card-top{display:flex;align-items:flex-start;justify-content:space-between;}
+.tl-name{font-size:14px;font-weight:500;line-height:1.3;flex:1;}
+.tl-time{font-size:11px;color:var(--muted);margin-left:8px;white-space:nowrap;}
+.tl-location{font-size:12px;color:var(--muted);margin-top:4px;display:flex;align-items:center;gap:4px;}
+.tl-transport-tag{font-size:11px;color:#3B82F6;background:#EFF6FF;padding:2px 8px;border-radius:20px;margin-top:6px;display:inline-flex;align-items:center;gap:4px;}
+.tl-status{font-size:10px;padding:2px 8px;border-radius:20px;margin-top:6px;display:inline-block;}
+.status-ok{background:#ECFDF5;color:#059669;}.status-pending{background:#FFF7ED;color:#D97706;}.status-booked{background:#EFF6FF;color:#2563EB;}
+/* MODAL */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:300;display:flex;flex-direction:column;justify-content:flex-end;opacity:0;pointer-events:none;transition:opacity .3s;}
+.modal-overlay.show{opacity:1;pointer-events:all;}
+.modal-sheet{background:white;border-radius:24px 24px 0 0;max-height:88vh;overflow-y:auto;transform:translateY(100%);transition:transform .3s cubic-bezier(.32,.72,0,1);}
+.modal-overlay.show .modal-sheet{transform:translateY(0);}
+.modal-handle{width:36px;height:4px;background:#E5E7EB;border-radius:2px;margin:12px auto 16px;}
+.modal-inner{padding:0 20px 40px;}
+.modal-type{font-size:11px;letter-spacing:1px;text-transform:uppercase;color:var(--muted);margin-bottom:6px;}
+.modal-title{font-size:20px;font-weight:500;margin-bottom:4px;}
+.modal-subtitle{font-size:13px;color:var(--muted);margin-bottom:20px;}
+.info-row{display:flex;gap:12px;align-items:flex-start;padding:10px 0;border-bottom:0.5px solid var(--border);}
+.info-label{font-size:12px;color:var(--muted);width:60px;flex-shrink:0;padding-top:1px;}
+.info-value{font-size:13px;flex:1;line-height:1.5;}
+/* ROUTE SELECTOR */
+.route-selector{margin:12px 0;}
+.route-tabs{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;margin-bottom:10px;}
+.route-tabs::-webkit-scrollbar{display:none;}
+.route-tab{flex-shrink:0;background:#F3F4F6;border:1.5px solid transparent;border-radius:20px;padding:5px 14px;font-size:12px;cursor:pointer;font-family:inherit;transition:all .2s;white-space:nowrap;}
+.route-tab.active{background:white;border-color:var(--sakura-deep);color:var(--sakura-deep);font-weight:500;}
+.route-card{background:#F8FAFF;border-radius:12px;padding:12px 14px;border:0.5px solid #DBEAFE;}
+.route-step{display:flex;align-items:flex-start;gap:10px;padding:8px 0;border-bottom:0.5px dashed #DBEAFE;}
+.route-step:last-child{border:none;}
+.route-icon{font-size:18px;width:28px;text-align:center;flex-shrink:0;}
+.route-line{font-size:13px;font-weight:500;}
+.route-sub{font-size:11px;color:var(--muted);margin-top:2px;}
+.route-meta{display:flex;gap:16px;margin-top:8px;padding-top:8px;border-top:0.5px solid #DBEAFE;font-size:12px;color:var(--ink-soft);}
+/* BUTTONS */
+.btn-primary{flex:1;background:var(--sakura-deep);color:white;border:none;border-radius:12px;padding:13px;font-size:14px;font-family:inherit;font-weight:500;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;transition:opacity .2s;text-decoration:none;}
+.btn-primary:active{opacity:.85;}
+.btn-secondary{flex:1;background:var(--surface);color:var(--ink);border:none;border-radius:12px;padding:13px;font-size:14px;font-family:inherit;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;text-decoration:none;}
+.btn-map{display:flex;align-items:center;justify-content:center;gap:6px;width:100%;background:#4285F4;color:white;border:none;border-radius:12px;padding:13px;font-size:14px;font-family:inherit;font-weight:500;cursor:pointer;margin-top:10px;text-decoration:none;}
+.btn-nav{display:flex;align-items:center;justify-content:center;gap:6px;width:100%;background:#34A853;color:white;border:none;border-radius:12px;padding:13px;font-size:14px;font-family:inherit;font-weight:500;cursor:pointer;margin-top:8px;text-decoration:none;}
+.action-row{display:flex;gap:10px;margin-top:20px;}
+.nearby-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px;}
+.nearby-card{background:var(--surface);border-radius:10px;padding:10px;font-size:12px;cursor:pointer;}
+.nearby-name{font-weight:500;margin-bottom:2px;}
+.nearby-dist{color:var(--muted);font-size:10px;}
+/* PARTICIPANTS */
+.section-card{background:white;border-radius:var(--radius);margin:12px 20px;padding:16px;box-shadow:var(--shadow);border:0.5px solid var(--border);}
+.section-title{font-size:13px;font-weight:500;color:var(--muted);letter-spacing:.5px;margin-bottom:12px;}
+.participant{display:flex;align-items:center;gap:12px;padding:8px 0;border-bottom:0.5px solid var(--border);}
+.participant:last-child{border:none;}
+.avatar{width:40px;height:40px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:500;flex-shrink:0;}
+.p-name{font-size:14px;font-weight:500;}
+.p-role{font-size:11px;color:var(--muted);margin-top:2px;}
+.role-badge{font-size:10px;padding:3px 8px;border-radius:20px;}
+.invite-btn{width:100%;background:var(--ink);color:white;border:none;border-radius:12px;padding:13px;font-size:14px;font-family:inherit;cursor:pointer;margin-top:12px;display:flex;align-items:center;justify-content:center;gap:8px;}
+.share-box{background:var(--surface);border-radius:12px;padding:14px;margin-top:12px;}
+.share-url{font-family:monospace;font-size:12px;color:#2563EB;word-break:break-all;margin-bottom:10px;line-height:1.5;}
+.share-btns{display:flex;gap:8px;}
+.copy-btn{flex:1;background:var(--ink);color:white;border:none;border-radius:10px;padding:9px;font-size:13px;cursor:pointer;font-family:inherit;}
+.open-btn{flex:1;background:#4285F4;color:white;border:none;border-radius:10px;padding:9px;font-size:13px;cursor:pointer;font-family:inherit;}
+.add-member-row{display:flex;gap:8px;margin-top:10px;}
+.member-input{flex:1;border:0.5px solid var(--border);border-radius:10px;padding:9px 12px;font-size:13px;font-family:inherit;background:var(--surface);outline:none;}
+.member-input:focus{border-color:var(--sakura);}
+.role-select{border:0.5px solid var(--border);border-radius:10px;padding:9px 12px;font-size:13px;font-family:inherit;background:var(--surface);outline:none;}
+.add-btn-sm{background:var(--sakura-deep);color:white;border:none;border-radius:10px;padding:9px 14px;font-size:13px;cursor:pointer;font-family:inherit;white-space:nowrap;}
+/* EXPENSE */
+.expense-summary{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;padding:0 20px;margin-top:12px;}
+.summary-card{background:white;border-radius:12px;padding:12px;text-align:center;box-shadow:var(--shadow);border:0.5px solid var(--border);}
+.summary-num{font-size:18px;font-weight:500;color:var(--sakura-deep);}
+.summary-label{font-size:10px;color:var(--muted);margin-top:2px;}
+.expense-item{background:white;border-radius:12px;margin:8px 20px;padding:13px 15px;box-shadow:var(--shadow);border:0.5px solid var(--border);display:flex;align-items:center;gap:12px;cursor:pointer;}
+.exp-icon{font-size:22px;width:40px;text-align:center;}
+.exp-info{flex:1;}
+.exp-name{font-size:14px;font-weight:500;}
+.exp-meta{font-size:11px;color:var(--muted);margin-top:2px;}
+.exp-amount{font-size:15px;font-weight:500;}
+.exp-per{font-size:10px;color:var(--muted);text-align:right;margin-top:2px;}
+.add-expense-btn{position:fixed;bottom:calc(var(--tab-h)+20px);right:calc(50% - 220px);width:52px;height:52px;border-radius:50%;background:var(--sakura-deep);color:white;border:none;font-size:24px;cursor:pointer;box-shadow:0 4px 16px rgba(196,99,122,.4);display:flex;align-items:center;justify-content:center;z-index:150;}
+@media(max-width:480px){.add-expense-btn{right:20px;}}
+.day-filter{display:flex;gap:6px;overflow-x:auto;padding:10px 20px;scrollbar-width:none;}
+.day-filter::-webkit-scrollbar{display:none;}
+.filter-chip{flex-shrink:0;background:white;border:0.5px solid var(--border);border-radius:20px;padding:5px 12px;font-size:12px;cursor:pointer;transition:all .2s;}
+.filter-chip.active{background:var(--ink);color:white;border-color:var(--ink);}
+.split-table{width:100%;border-collapse:collapse;margin-top:12px;font-size:13px;}
+.split-table th{font-size:11px;color:var(--muted);text-align:left;padding:4px 0 8px;font-weight:400;}
+.split-table td{padding:8px 0;border-bottom:0.5px solid var(--border);}
+.paid-tag{background:#ECFDF5;color:#059669;font-size:10px;padding:2px 6px;border-radius:6px;}
+/* ADD EXP FORM */
+.add-modal{padding:0 20px 40px;}
+.form-group{margin-bottom:14px;}
+.form-label{font-size:12px;color:var(--muted);margin-bottom:6px;display:block;}
+.form-input{width:100%;border:0.5px solid var(--border);border-radius:10px;padding:11px 14px;font-size:14px;font-family:inherit;background:var(--surface);outline:none;}
+.form-input:focus{border-color:var(--sakura);}
+.checkbox-row{display:flex;gap:8px;flex-wrap:wrap;margin-top:6px;}
+.cb-item{display:flex;align-items:center;gap:6px;background:var(--surface);border-radius:20px;padding:6px 12px;cursor:pointer;font-size:13px;border:1.5px solid transparent;transition:all .2s;}
+.cb-item.selected{background:#FFF0F4;border-color:var(--sakura-deep);color:var(--sakura-deep);}
+/* TRANSPORT PAGE */
+.trans-item{background:white;border-radius:14px;margin:8px 20px;padding:14px 16px;box-shadow:0 2px 8px rgba(0,0,0,.07);border:0.5px solid rgba(0,0,0,.08);cursor:pointer;}
+.trans-item.important{border-left:3px solid var(--sakura);}
+/* NOTICE */
+.deploy-notice{background:#FFF9E6;border:1px solid #FCD34D;border-radius:12px;margin:12px 20px;padding:14px;font-size:13px;line-height:1.6;}
+.deploy-notice strong{color:#92400E;}
+.deploy-steps{background:white;border-radius:12px;margin:0 20px 12px;padding:14px;border:0.5px solid var(--border);font-size:12px;line-height:1.8;color:var(--ink-soft);}
+.deploy-steps code{background:#F3F4F6;padding:2px 6px;border-radius:4px;font-size:11px;}
+</style>
+</head>
+<body>
+
+<div class="app-header">
+  <div class="header-row">
+    <div>
+      <h1>🌸 日本之旅</h1>
+      <div class="subtitle">APR 27 — MAY 05 · 2025</div>
+    </div>
+    <div style="text-align:right">
+      <div style="font-size:12px;color:#E8A0B0;">9天8夜</div>
+      <div style="font-size:11px;color:rgba(255,255,255,.4);margin-top:2px;">東京 → 大阪</div>
+    </div>
+  </div>
+</div>
+
+<!-- PAGES -->
+<div id="page-schedule" class="page active">
+  <div class="day-strip" id="dayStrip"></div>
+  <div class="timeline-wrap" id="timelineWrap"></div>
+</div>
+
+<div id="page-transport" class="page">
+  <div style="padding:16px 20px 8px">
+    <div style="font-size:18px;font-weight:500;margin-bottom:4px;">交通轉乘</div>
+    <div style="font-size:13px;color:var(--muted);">點選查看詳細路線與替代方案</div>
+  </div>
+  <div id="transportList"></div>
+</div>
+
+<div id="page-people" class="page">
+  <div style="padding:16px 20px 8px">
+    <div style="font-size:18px;font-weight:500;margin-bottom:4px;">同行成員</div>
+    <div style="font-size:13px;color:var(--muted);">管理參與者與權限</div>
+  </div>
+
+  <div class="deploy-notice">
+    <strong>📌 如何讓成員透過連結加入？</strong><br>
+    此 App 需部署到網路才能讓其他人開啟。請依下方步驟免費部署到 GitHub Pages：
+  </div>
+  <div class="deploy-steps">
+    <strong>部署步驟（3分鐘完成）：</strong><br>
+    1. 前往 <code>github.com</code> 登入（或註冊免費帳號）<br>
+    2. 點右上角 ＋ → <code>New repository</code>，命名如 <code>japan-trip</code><br>
+    3. 進入 repo → <code>Add file</code> → 上傳此 HTML 檔，重命名為 <code>index.html</code><br>
+    4. 進入 Settings → Pages → Source 選 <code>main</code> branch → Save<br>
+    5. 約1分鐘後網址 <code>你的帳號.github.io/japan-trip</code> 即可使用！<br>
+    <br>
+    部署後將網址填入下方，同行者即可透過連結直接開啟。
+  </div>
+
+  <div class="section-card">
+    <div class="section-title">分享連結設定</div>
+    <div style="font-size:13px;color:var(--muted);margin-bottom:10px;">填入你部署後的網址：</div>
+    <div style="display:flex;gap:8px;">
+      <input class="member-input" id="deployUrlInput" placeholder="https://你的帳號.github.io/japan-trip" style="flex:1;">
+      <button class="add-btn-sm" onclick="saveDeployUrl()">儲存</button>
+    </div>
+    <div class="share-box" id="shareBox" style="display:none;">
+      <div class="share-url" id="shareUrlDisplay"></div>
+      <div class="share-btns">
+        <button class="copy-btn" onclick="copyShareUrl()">複製連結</button>
+        <button class="open-btn" onclick="openShareUrl()">開啟測試</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="section-card">
+    <div class="section-title">成員列表</div>
+    <div id="participantList"></div>
+    <div class="add-member-row">
+      <input class="member-input" id="newMemberName" placeholder="成員姓名或暱稱">
+      <select class="role-select" id="newMemberRole">
+        <option value="edit">可編輯</option>
+        <option value="view">僅觀看</option>
+        <option value="admin">管理者</option>
+      </select>
+      <button class="add-btn-sm" onclick="addMember()">＋ 加入</button>
+    </div>
+  </div>
+
+  <div class="section-card">
+    <div class="section-title">權限說明</div>
+    <div style="font-size:13px;line-height:2;color:var(--ink-soft);">
+      <div>🔴 <strong>管理者</strong> — 可修改行程、邀請成員、管理費用</div>
+      <div>🔵 <strong>可編輯</strong> — 可調整行程及新增費用</div>
+      <div>⚪ <strong>僅觀看</strong> — 只能瀏覽行程資訊</div>
+    </div>
+  </div>
+</div>
+
+<div id="page-expense" class="page">
+  <div style="padding:16px 20px 4px">
+    <div style="font-size:18px;font-weight:500;margin-bottom:4px;">記帳分帳</div>
+    <div style="font-size:13px;color:var(--muted);">根據已加入成員自動計算</div>
+  </div>
+  <div class="expense-summary">
+    <div class="summary-card"><div class="summary-num" id="totalExp">¥0</div><div class="summary-label">總花費</div></div>
+    <div class="summary-card"><div class="summary-num" id="perPerson">¥0</div><div class="summary-label">每人均攤</div></div>
+    <div class="summary-card"><div class="summary-num" id="expCount">0</div><div class="summary-label">筆記錄</div></div>
+  </div>
+  <div class="day-filter" id="expFilter"></div>
+  <div id="expenseList"></div>
+  <button class="add-expense-btn" onclick="openAddExpense()">＋</button>
+</div>
+
+<!-- BOTTOM NAV -->
+<nav class="bottom-nav">
+  <button class="nav-item active" onclick="switchPage('schedule',this)"><span class="nav-icon">🗓</span><span>行程</span></button>
+  <button class="nav-item" onclick="switchPage('transport',this)"><span class="nav-icon">🚆</span><span>交通</span></button>
+  <button class="nav-item" onclick="switchPage('people',this)"><span class="nav-icon">👥</span><span>成員</span></button>
+  <button class="nav-item" onclick="switchPage('expense',this)"><span class="nav-icon">💰</span><span>記帳</span></button>
+</nav>
+
+<!-- DETAIL MODAL -->
+<div class="modal-overlay" id="detailModal" onclick="closeModal('detailModal')">
+  <div class="modal-sheet" onclick="event.stopPropagation()">
+    <div class="modal-handle"></div>
+    <div class="modal-inner" id="modalContent"></div>
+  </div>
+</div>
+
+<!-- ADD EXPENSE MODAL -->
+<div class="modal-overlay" id="addExpModal" onclick="closeModal('addExpModal')">
+  <div class="modal-sheet" onclick="event.stopPropagation()">
+    <div class="modal-handle"></div>
+    <div class="add-modal">
+      <div style="font-size:17px;font-weight:500;margin:0 0 16px;">新增費用</div>
+      <div class="form-group">
+        <label class="form-label">名稱</label>
+        <input class="form-input" id="expNameInput" placeholder="例：晚餐、計程車">
+      </div>
+      <div class="form-group">
+        <label class="form-label">金額（日圓 ¥）</label>
+        <input class="form-input" id="expAmtInput" type="number" placeholder="0">
+      </div>
+      <div class="form-group">
+        <label class="form-label">類別</label>
+        <select class="form-input" id="expCatInput">
+          <option>🍽 餐飲</option><option>🚆 交通</option><option>⛩ 景點</option>
+          <option>🛍 購物</option><option>🏨 住宿</option><option>🎵 演唱會</option><option>📦 其他</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">日期</label>
+        <select class="form-input" id="expDayInput">
+          <option>4/27 Day1</option><option>4/28 Day2</option><option>4/29 Day3</option>
+          <option>4/30 Day4</option><option>5/1 Day5</option><option>5/2 Day6</option>
+          <option>5/3 Day7</option><option>5/4 Day8</option><option>5/5 Day9</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">付款人</label>
+        <select class="form-input" id="expPayerInput"></select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">分攤對象 <span style="color:var(--muted);font-size:11px;">（點選選擇）</span></label>
+        <div class="checkbox-row" id="splitCheckboxes"></div>
+        <div style="margin-top:8px;display:flex;gap:8px;">
+          <button onclick="selectAllSplit()" style="font-size:11px;background:none;border:0.5px solid var(--border);border-radius:8px;padding:4px 10px;cursor:pointer;font-family:inherit;">全選</button>
+          <button onclick="clearSplit()" style="font-size:11px;background:none;border:0.5px solid var(--border);border-radius:8px;padding:4px 10px;cursor:pointer;font-family:inherit;">清除</button>
+        </div>
+      </div>
+      <div style="display:flex;gap:10px;margin-top:4px;">
+        <button class="btn-secondary" onclick="closeModal('addExpModal')" style="border:none;">取消</button>
+        <button class="btn-primary" onclick="saveExpense()">儲存</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ====== STATE ======
+let members = JSON.parse(localStorage.getItem('jp_members') || 'null') || [
+  { name:'旅行主辦', color:'#FFF0F0', textColor:'#E11D48', role:'admin', roleLabel:'管理者' },
+  { name:'同行者 A', color:'#EFF6FF', textColor:'#2563EB', role:'edit', roleLabel:'可編輯' },
+  { name:'同行者 B', color:'#EFF6FF', textColor:'#2563EB', role:'edit', roleLabel:'可編輯' },
+  { name:'同行者 C', color:'#F3F4F6', textColor:'#6B7280', role:'view', roleLabel:'僅觀看' },
+];
+let expenses = JSON.parse(localStorage.getItem('jp_expenses') || '[]');
+let deployUrl = localStorage.getItem('jp_deploy_url') || '';
+let expFilterDay = 'all';
+let currentDay = 0;
+
+function saveMembers(){ localStorage.setItem('jp_members', JSON.stringify(members)); }
+function saveExpenses(){ localStorage.setItem('jp_expenses', JSON.stringify(expenses)); }
+
+// ====== DATA ======
+const DAYS = [
+  { date:'4/27', label:'Day1', tag:'東京', tagColor:'#3B82F6', items:[
+    { type:'flight', icon:'✈️', name:'CI0222 桃園→羽田', time:'18:05', location:'台灣桃園機場', status:'ok', statusText:'已訂票', mapQuery:'台灣桃園國際機場', notes:'抵達羽田約21:30，第三航廈入境。記得到行李轉盤拿行李後通關。', routes:[], nearby:[] },
+    { type:'transport', icon:'🚌', name:'羽田機場 → 赤坂格蘭貝爾酒店', time:'抵達後', location:'羽田T3 → 赤坂見附', status:'pending', statusText:'⚠️ 尚未預定', mapQuery:'赤坂グランベルホテル', notes:'飛機約21:00抵達', routes:[
+      { label:'京急線（推薦）', time:'約45分', cost:'¥650', steps:[
+        { icon:'🚇', line:'京急線 快特', sub:'羽田空港第3ターミナル→品川 約20分 ¥410' },
+        { icon:'🚆', line:'JR山手線', sub:'品川→新橋 約8分 ¥170' },
+        { icon:'🚇', line:'東京Metro銀座線', sub:'新橋→赤坂見附 約8分 ¥180' },
+        { icon:'🚶', line:'步行', sub:'赤坂見附→飯店 約5分' },
+      ]},
+      { label:'東京單軌電車', time:'約50分', cost:'¥700', steps:[
+        { icon:'🚝', line:'東京モノレール', sub:'羽田→浜松町 約20分 ¥500' },
+        { icon:'🚆', line:'JR山手線', sub:'浜松町→新橋 約4分 ¥150' },
+        { icon:'🚇', line:'東京Metro銀座線', sub:'新橋→赤坂見附 約8分 ¥180' },
+      ]},
+      { label:'機場接送', time:'約60分', cost:'¥5,000~', steps:[
+        { icon:'🚗', line:'機場接送服務', sub:'需提前預約，直達飯店，含行李' },
+      ]},
+      { label:'計程車', time:'約40分', cost:'¥7,000~9,000', steps:[
+        { icon:'🚕', line:'計程車', sub:'羽田T3計程車乘車處→赤坂格蘭貝爾酒店，深夜也方便' },
+      ]},
+    ], nearby:[] },
+    { type:'hotel', icon:'🏨', name:'赤坂格蘭貝爾酒店 Check In', time:'~21:30', location:'東京都港区赤坂 3-19-3', status:'ok', statusText:'✅ 已預訂', mapQuery:'赤坂グランベルホテル', notes:'Check In辦理', routes:[], nearby:[{name:'日枝神社',dist:'徒步7分'},{name:'赤坂見附公園',dist:'徒步3分'}] },
+    { type:'food', icon:'🍜', name:'消夜 — 周邊便利商店/居酒屋', time:'深夜', location:'赤坂周邊', status:'', statusText:'', mapQuery:'赤坂 居酒屋', notes:'輕食或居酒屋，赤坂有多家深夜選擇', routes:[], nearby:[{name:'塚田農場 赤坂店',dist:'徒步3分'},{name:'磯丸水産',dist:'徒步5分'}] },
+  ]},
+  { date:'4/28', label:'Day2', tag:'東京', tagColor:'#3B82F6', items:[
+    { type:'hotel', icon:'🍳', name:'飯店早餐', time:'08:00', location:'赤坂格蘭貝爾酒店', status:'ok', statusText:'含飯店', mapQuery:'赤坂グランベルホテル', notes:'', routes:[], nearby:[] },
+    { type:'spot', icon:'⛩️', name:'日枝神社', time:'09:00', location:'東京都千代田区永田町', status:'', statusText:'免費', mapQuery:'日枝神社 東京', notes:'東京著名神社，開放時間 6:00-17:00（寶物殿 9:00-16:30）', routes:[{label:'步行',time:'7分',cost:'免費',steps:[{icon:'🚶',line:'徒步',sub:'赤坂見附站→日枝神社 約7分'}]}], nearby:[{name:'赤坂冰川神社',dist:'徒步10分'},{name:'山王日枯園',dist:'徒步3分'}] },
+    { type:'spot', icon:'⛩️', name:'赤坂冰川神社', time:'09:45', location:'東京都港区赤坂', status:'', statusText:'免費', mapQuery:'赤坂氷川神社', notes:'開放時間 6:00-18:00', routes:[{label:'步行',time:'10分',cost:'免費',steps:[{icon:'🚶',line:'徒步',sub:'日枝神社→赤坂冰川神社 約10分'}]}], nearby:[] },
+    { type:'shop', icon:'🛍️', name:'Bic Camera 赤坂見附店', time:'10:30', location:'赤坂見附駅旁', status:'', statusText:'免稅購物', mapQuery:'ビックカメラ 赤坂見附店', notes:'電器免稅，需護照', routes:[], nearby:[] },
+    { type:'food', icon:'🍰', name:'SIROTAE 西式甜點', time:'11:30', location:'港区赤坂', status:'', statusText:'~¥800', mapQuery:'シロタエ 赤坂', notes:'赤坂超人氣西點店，招牌乳酪蛋糕', routes:[], nearby:[] },
+    { type:'transport', icon:'🚇', name:'赤坂 → 芝增上寺', time:'12:20', location:'赤坂見附 → 大門', status:'', statusText:'', mapQuery:'芝増上寺', notes:'', routes:[
+      { label:'Metro（推薦）', time:'約20分', cost:'¥200', steps:[{icon:'🚇',line:'東京Metro銀座線',sub:'赤坂見附→溜池山王 乘車1分'},{icon:'🚇',line:'東京Metro南北線',sub:'溜池山王→三田 約12分'},{icon:'🚇',line:'都営三田線',sub:'三田→大門 約2分 ¥200合計'}]},
+      { label:'銀座線+步行', time:'約35分', cost:'¥180', steps:[{icon:'🚇',line:'東京Metro銀座線',sub:'赤坂見附→新橋 約10分 ¥180'},{icon:'🚶',line:'步行',sub:'新橋→增上寺 約20分'}]},
+      { label:'計程車', time:'約15分', cost:'¥1,200', steps:[{icon:'🚕',line:'計程車',sub:'赤坂見附→增上寺 約15分'}]},
+    ], nearby:[] },
+    { type:'spot', icon:'⛩️', name:'芝增上寺', time:'12:45', location:'港区芝公園 4-7-35', status:'', statusText:'免費', mapQuery:'増上寺', notes:'開放時間 6:00-17:30，後方可眺望東京塔絕景', routes:[], nearby:[{name:'東京塔',dist:'徒步5分'},{name:'芝公園',dist:'徒步3分'}] },
+    { type:'transport', icon:'🚇', name:'增上寺 → KITTE 丸之內', time:'13:30', location:'大門 → 東京站', status:'', statusText:'', mapQuery:'KITTE 丸の内', notes:'', routes:[
+      { label:'都営三田線', time:'約10分', cost:'¥180', steps:[{icon:'🚇',line:'都営三田線',sub:'大門→東京站 約10分 ¥180'}]},
+      { label:'步行', time:'約25分', cost:'免費', steps:[{icon:'🚶',line:'徒步',sub:'增上寺→汐留→東京站周邊 約25分'}]},
+    ], nearby:[] },
+    { type:'food', icon:'🎂', name:'治一郎 KITTE 丸之內店', time:'13:45', location:'KITTE B1F', status:'', statusText:'~¥1,200', mapQuery:'治一郎 KITTE丸の内', notes:'靜岡名產年輪蛋糕，適合伴手禮', routes:[], nearby:[] },
+    { type:'food', icon:'🍽️', name:'煉瓦亭（午餐）', time:'14:30', location:'中央区銀座', status:'pending', statusText:'⚠️ 建議預約', mapQuery:'煉瓦亭 銀座', notes:'1895年創業老舖洋食，名物炸豬排蛋包飯。建議提前預約！', routes:[], nearby:[{name:'銀座三越',dist:'徒步3分'},{name:'歌舞伎座',dist:'徒步8分'}] },
+    { type:'shop', icon:'🍵', name:'中村藤吉 GINZA SIX店', time:'15:30', location:'銀座 6-10-1 GINZA SIX', status:'', statusText:'~¥1,500', mapQuery:'中村藤吉 GINZA SIX', notes:'宇治抹茶名店，抹茶粉伴手禮首選', routes:[], nearby:[] },
+    { type:'food', icon:'🥪', name:'Age3GINZA 油炸三明治', time:'16:00', location:'銀座', status:'', statusText:'~¥800', mapQuery:'Age3 GINZA', notes:'銀座特色炸三明治', routes:[], nearby:[] },
+    { type:'transport', icon:'🚆', name:'銀座 → LaLa Arena Tokyo Bay', time:'16:00前', location:'銀座 → 南船橋', status:'', statusText:'', mapQuery:'LaLa Arena TOKYO-BAY', notes:'南船橋站徒步6分到Arena。演唱會前電車較塞，提早出發！', routes:[
+      { label:'京葉線（推薦）', time:'約50分', cost:'¥650', steps:[{icon:'🚇',line:'東京Metro銀座線',sub:'銀座→東京 約4分 ¥180'},{icon:'🚆',line:'JR京葉線',sub:'東京→南船橋 約35分 ¥470'},{icon:'🚶',line:'徒步',sub:'南船橋站南口→Arena 約6分'}]},
+      { label:'武蔵野線経由', time:'約55分', cost:'¥600', steps:[{icon:'🚇',line:'Metro日比谷線',sub:'銀座→有楽町 約2分'},{icon:'🚆',line:'JR京葉線or武蔵野線',sub:'有楽町→南船橋 約40分 ¥470'}]},
+    ], nearby:[] },
+    { type:'concert', icon:'🎵', name:'LaLa Arena Tokyo-Bay 演唱會', time:'開演前/~20:00散', location:'千葉県船橋市南船橋', status:'ok', statusText:'✅ 已訂票', mapQuery:'LaLa Arena TOKYO-BAY', notes:'演唱會約20:00結束，散場後電車擁擠，建議等15分再搭', routes:[], nearby:[{name:'ららぽーとTOKYO-BAY',dist:'徒步2分'},{name:'IKEA Tokyo-Bay',dist:'徒步5分'}] },
+    { type:'transport', icon:'🚆', name:'南船橋 → 赤坂格蘭貝爾酒店', time:'~21:00', location:'南船橋 → 赤坂見附', status:'', statusText:'', mapQuery:'赤坂グランベルホテル', notes:'散場人多，建議等約15分再走', routes:[
+      { label:'京葉線+銀座線', time:'約50分', cost:'¥650', steps:[{icon:'🚆',line:'JR京葉線',sub:'南船橋→東京 約35分 ¥470'},{icon:'🚇',line:'東京Metro銀座線',sub:'東京→赤坂見附 約8分 ¥180'}]},
+      { label:'計程車', time:'約60分', cost:'¥15,000~', steps:[{icon:'🚕',line:'計程車',sub:'南船橋→赤坂（高速料金込み，深夜注意）'}]},
+    ], nearby:[] },
+  ]},
+  { date:'4/29', label:'Day3', tag:'東京', tagColor:'#3B82F6', items:[
+    { type:'hotel',icon:'🍳',name:'飯店早餐',time:'08:00',location:'赤坂格蘭貝爾酒店',status:'ok',statusText:'含飯店',mapQuery:'赤坂グランベルホテル',notes:'',routes:[],nearby:[]},
+    { type:'spot',icon:'⛩️',name:'法輪寺',time:'09:00',location:'港区元麻布',status:'',statusText:'免費',mapQuery:'法輪寺 元麻布',notes:'開放時間 9:00-17:00',routes:[{label:'Metro南北線',time:'約20分',cost:'¥200',steps:[{icon:'🚇',line:'東京Metro南北線',sub:'赤坂見附→麻布十番 約10分 ¥200'},{icon:'🚶',line:'徒步',sub:'麻布十番→法輪寺 約8分'}]}],nearby:[{name:'麻布十番商店街',dist:'徒步5分'}]},
+    { type:'transport',icon:'🚇',name:'法輪寺 → 神田明神',time:'10:00',location:'麻布十番 → 末広町',status:'',statusText:'',mapQuery:'神田明神',notes:'',routes:[
+      {label:'Metro南北線+銀座線',time:'約30分',cost:'¥280',steps:[{icon:'🚇',line:'東京Metro南北線',sub:'麻布十番→溜池山王 約8分'},{icon:'🚇',line:'東京Metro銀座線',sub:'溜池山王→末広町 約10分 ¥280合計'},{icon:'🚶',line:'徒步',sub:'末広町→神田明神 約5分'}]},
+      {label:'計程車',time:'約20分',cost:'¥2,000',steps:[{icon:'🚕',line:'計程車',sub:'麻布十番→神田明神 直達'}]},
+    ],nearby:[]},
+    { type:'spot',icon:'⛩️',name:'神田明神',time:'10:15',location:'千代田区外神田 2-16-2',status:'',statusText:'免費',mapQuery:'神田明神',notes:'開放時間 24小時（拜殿 9:00-16:00），東京三大祭之一',routes:[],nearby:[{name:'秋葉原電器街',dist:'徒步7分'},{name:'湯島天神',dist:'徒步10分'}]},
+    { type:'food',icon:'🍖',name:'炸豬排 山家（午餐）',time:'12:00',location:'神田周邊',status:'pending',statusText:'建議早到',mapQuery:'山家 神田 とんかつ',notes:'神田名店，午餐時段排隊',routes:[],nearby:[]},
+    { type:'transport',icon:'🚆',name:'神田 → 上野恩賜公園',time:'13:00',location:'神田 → 上野',status:'',statusText:'',mapQuery:'上野恩賜公園',notes:'',routes:[
+      {label:'JR山手線',time:'5分',cost:'¥150',steps:[{icon:'🚆',line:'JR山手線',sub:'神田→上野 約5分 ¥150'}]},
+      {label:'步行',time:'約25分',cost:'免費',steps:[{icon:'🚶',line:'徒步',sub:'神田→上野 約25分（沿中央通）'}]},
+    ],nearby:[]},
+    { type:'spot',icon:'🌲',name:'上野恩賜公園',time:'13:10',location:'台東区上野公園',status:'',statusText:'免費',mapQuery:'上野恩賜公園',notes:'開放時間 5:00-23:00，含東京國立博物館、上野動物園',routes:[],nearby:[{name:'東京国立博物館',dist:'公園內'},{name:'上野動物園',dist:'公園內 ¥600'},{name:'アメ横',dist:'徒步5分'}]},
+    { type:'transport',icon:'🚆',name:'上野 → LaLa Arena Tokyo Bay',time:'14:00出發',location:'上野 → 南船橋',status:'',statusText:'',mapQuery:'LaLa Arena TOKYO-BAY',notes:'15:00前需到場',routes:[
+      {label:'山手線+京葉線',time:'約45分',cost:'¥620',steps:[{icon:'🚆',line:'JR山手線',sub:'上野→東京 約8分 ¥150'},{icon:'🚆',line:'JR京葉線',sub:'東京→南船橋 約35分 ¥470'}]},
+    ],nearby:[]},
+    { type:'concert',icon:'🎵',name:'LaLa Arena Tokyo-Bay 演唱會',time:'開演前/~19:00散',location:'千葉県船橋市南船橋',status:'ok',statusText:'✅ 已訂票',mapQuery:'LaLa Arena TOKYO-BAY',notes:'演唱會約19:00結束',routes:[],nearby:[{name:'ららぽーとTOKYO-BAY',dist:'徒步2分'}]},
+    { type:'transport',icon:'🚆',name:'南船橋 → 赤坂格蘭貝爾酒店',time:'~20:30',location:'南船橋 → 赤坂見附',status:'',statusText:'',mapQuery:'赤坂グランベルホテル',notes:'',routes:[{label:'京葉線+銀座線',time:'約50分',cost:'¥650',steps:[{icon:'🚆',line:'JR京葉線',sub:'南船橋→東京 ¥470'},{icon:'🚇',line:'銀座線',sub:'東京→赤坂見附 ¥180'}]}],nearby:[]},
+  ]},
+  { date:'4/30', label:'Day4', tag:'東京', tagColor:'#3B82F6', items:[
+    { type:'hotel',icon:'🍳',name:'飯店早餐',time:'08:00',location:'赤坂格蘭貝爾酒店',status:'ok',statusText:'含飯店',mapQuery:'赤坂グランベルホテル',notes:'',routes:[],nearby:[]},
+    { type:'spot',icon:'⛩️',name:'淺草寺',time:'09:30',location:'台東区浅草 2-3-1',status:'',statusText:'免費',mapQuery:'浅草寺',notes:'開放時間 6:00-17:00，雷門＋仲見世商店街為必拍',routes:[{label:'銀座線',time:'約30分',cost:'¥250',steps:[{icon:'🚇',line:'東京Metro銀座線',sub:'赤坂見附→浅草 約30分 ¥250'}]},{label:'都営浅草線',time:'約25分',cost:'¥220',steps:[{icon:'🚇',line:'都営浅草線',sub:'大門→浅草 約20分 ¥220（需步行至大門）'}]}],nearby:[{name:'仲見世通り',dist:'商店街'},{name:'東京スカイツリー',dist:'電車5分'}]},
+    { type:'transport',icon:'🚆',name:'淺草 → 市川市動植物園',time:'11:30',location:'浅草 → 市川大野',status:'',statusText:'',mapQuery:'市川市動植物園',notes:'偏遠地點，建議確認時刻表',routes:[
+      {label:'都営+武蔵野線',time:'約60分',cost:'¥600',steps:[{icon:'🚇',line:'都営浅草線',sub:'浅草→西船橋 約30分 ¥350'},{icon:'🚆',line:'JR武蔵野線',sub:'西船橋→市川大野 約15分 ¥200'},{icon:'🚌',line:'路線バス/徒步',sub:'市川大野站→動植物園 約15分'}]},
+      {label:'計程車（市川大野から）',time:'約15分',cost:'¥2,500~',steps:[{icon:'🚕',line:'計程車',sub:'市川大野駅→動植物園 約15分 ¥2,500~'}]},
+    ],nearby:[]},
+    { type:'spot',icon:'🦒',name:'市川市動植物園',time:'12:00',location:'千葉県市川市大町',status:'',statusText:'~¥500',mapQuery:'市川市動植物園',notes:'開放時間 9:30-16:30（週一休園），小型動植物園',routes:[],nearby:[]},
+    { type:'transport',icon:'🚆',name:'動植物園 → 赤坂格蘭貝爾酒店',time:'~17:00回',location:'市川大野 → 赤坂見附',status:'',statusText:'',mapQuery:'赤坂グランベルホテル',notes:'',routes:[{label:'武蔵野線+Metro',time:'約70分',cost:'¥680',steps:[{icon:'🚆',line:'JR武蔵野線',sub:'市川大野→西船橋 ¥200'},{icon:'🚇',line:'都営浅草線→Metro',sub:'西船橋→赤坂見附 ¥450~'}]}],nearby:[]},
+    { type:'spot',icon:'📝',name:'【待安排】其他行程',time:'自由時間',location:'東京',status:'pending',statusText:'⚠️ 待規劃',mapQuery:'東京観光',notes:'推薦：東京晴空塔（¥2,100）/ 谷中銀座商店街（免費）/ 上野阿美橫',routes:[],nearby:[{name:'東京スカイツリー',dist:'推薦'},{name:'谷中銀座',dist:'推薦'},{name:'根津神社',dist:'推薦'}]},
+  ]},
+  { date:'5/1', label:'Day5', tag:'東京', tagColor:'#3B82F6', items:[
+    { type:'hotel',icon:'🍳',name:'飯店早餐',time:'08:00',location:'赤坂格蘭貝爾酒店',status:'ok',statusText:'含飯店',mapQuery:'赤坂グランベルホテル',notes:'',routes:[],nearby:[]},
+    { type:'spot',icon:'⛩️',name:'豪德寺（招財貓）',time:'09:30',location:'世田谷区豪徳寺',status:'',statusText:'免費',mapQuery:'豪徳寺',notes:'開放時間 6:00-18:00，招財貓發祥地',routes:[{label:'Metro+小田急',time:'約30分',cost:'¥340',steps:[{icon:'🚇',line:'東京Metro半蔵門線',sub:'永田町→渋谷 約10分 ¥170'},{icon:'🚃',line:'小田急線',sub:'渋谷→豪徳寺 約10分 ¥170'}]}],nearby:[]},
+    { type:'spot',icon:'🐕',name:'忠犬八公像',time:'11:00',location:'渋谷駅前',status:'',statusText:'免費',mapQuery:'忠犬ハチ公像 渋谷',notes:'渋谷地標，JR渋谷站八公口出站即達',routes:[{label:'小田急+山手線',time:'10分',cost:'¥170',steps:[{icon:'🚃',line:'小田急線→JR山手線',sub:'豪徳寺→渋谷 約10分 ¥170'}]}],nearby:[{name:'渋谷SCRAMBLE SQUARE',dist:'徒步3分'},{name:'SHIBUYA SKY 展望台',dist:'徒步3分 ¥2,200'}]},
+    { type:'spot',icon:'🧙',name:'哈利波特旗艦店',time:'11:30',location:'渋谷区神宮前 1-22-22',status:'',statusText:'免費入場',mapQuery:'ワーナーブラザーズスタジオツアー東京 ハリー・ポッター 渋谷',notes:'渋谷神宮前旗艦店，免費入場，商品種類豐富',routes:[{label:'徒步',time:'15分',cost:'免費',steps:[{icon:'🚶',line:'徒步',sub:'渋谷→神宮前 約15分'}]}],nearby:[{name:'原宿竹下通り',dist:'徒步10分'},{name:'表参道',dist:'徒步12分'}]},
+    { type:'spot',icon:'⛩️',name:'明治神宮',time:'13:00',location:'渋谷区代々木神園町',status:'',statusText:'免費',mapQuery:'明治神宮',notes:'開放時間 日出-日落，森林參道氛圍極佳',routes:[{label:'徒步',time:'10分',cost:'免費',steps:[{icon:'🚶',line:'徒步',sub:'神宮前→JR原宿駅方向→明治神宮 約10分'}]}],nearby:[{name:'代々木公園',dist:'隣接'}]},
+    { type:'transport',icon:'🚆',name:'原宿/明治神宮 → 新宿',time:'17:30',location:'原宿 → 新宿',status:'',statusText:'',mapQuery:'新宿駅',notes:'',routes:[{label:'JR山手線',time:'5分',cost:'¥150',steps:[{icon:'🚆',line:'JR山手線',sub:'原宿→新宿 約5分 ¥150'}]}],nearby:[]},
+    { type:'food',icon:'🥩',name:'Lambne 羊燒肉 新宿店',time:'18:30（已預約）',location:'新宿区',status:'booked',statusText:'✅ 已預約 18:30',mapQuery:'Lambne 新宿',notes:'羊燒肉專門店，已預約 5/1 18:30 請準時',routes:[],nearby:[]},
+    { type:'spot',icon:'📝',name:'【待安排】其他行程',time:'下午',location:'渋谷/新宿周邊',status:'pending',statusText:'⚠️ 待規劃',mapQuery:'新宿観光',notes:'推薦：新宿御苑（¥500）/ 代代木公園（免費）/ 表参道逛街',routes:[],nearby:[{name:'新宿御苑',dist:'推薦 ¥500'},{name:'代々木公園',dist:'推薦免費'}]},
+    { type:'transport',icon:'🚇',name:'新宿 → 赤坂格蘭貝爾酒店',time:'~21:00',location:'新宿 → 赤坂見附',status:'',statusText:'',mapQuery:'赤坂グランベルホテル',notes:'',routes:[{label:'丸ノ内線',time:'10分',cost:'¥210',steps:[{icon:'🚇',line:'東京Metro丸ノ内線',sub:'新宿→赤坂見附 約10分 ¥210'}]}],nearby:[]},
+  ]},
+  { date:'5/2', label:'Day6', tag:'移動日', tagColor:'#D97706', items:[
+    { type:'hotel',icon:'🏨',name:'赤坂格蘭貝爾酒店 Check Out',time:'08:00',location:'東京赤坂',status:'ok',statusText:'✅',mapQuery:'赤坂グランベルホテル',notes:'行李帶上新幹線',routes:[],nearby:[]},
+    { type:'transport',icon:'🚄',name:'東京 → 新大阪（新幹線）',time:'9:00發車',location:'東京駅 → 新大阪駅',status:'ok',statusText:'✅ 已訂',mapQuery:'東京駅 新幹線',notes:'⚠️ GW期間全席指定席，無自由席！請務必準時。',routes:[
+      { label:'のぞみ（最快）', time:'2h21m', cost:'¥14,720', steps:[{icon:'🚇',line:'東京Metro銀座線',sub:'赤坂見附→東京 約10分 ¥180'},{icon:'🚄',line:'東海道新幹線 のぞみ',sub:'東京9:00→新大阪11:21 ¥14,720'}]},
+      { label:'ひかり（停較多站）', time:'約3h', cost:'¥14,720', steps:[{icon:'🚄',line:'東海道新幹線 ひかり',sub:'東京→新大阪 約3時間 ¥14,720（同価）'}]},
+    ],nearby:[]},
+    { type:'hotel',icon:'🏨',name:'東急STAY 大阪本町 Check In',time:'~12:00',location:'大阪市中央区本町',status:'ok',statusText:'✅ 已訂',mapQuery:'東急ステイ大阪本町',notes:'12:00前可先行李寄放',routes:[{label:'御堂筋線',time:'約20分',cost:'¥280',steps:[{icon:'🚇',line:'大阪Metro御堂筋線',sub:'梅田→本町 約5分 ¥230'},{icon:'🚶',line:'徒步',sub:'本町站→飯店 約5分'}]}],nearby:[]},
+    { type:'shop',icon:'💊',name:'OS Drug Store Shin Senba',time:'12:30',location:'大阪市中央区',status:'',statusText:'藥妝',mapQuery:'OSドラッグ 心斎橋',notes:'日本藥妝',routes:[],nearby:[]},
+    { type:'spot',icon:'⛩️',name:'難波神社',time:'13:00',location:'大阪市中央区',status:'',statusText:'免費',mapQuery:'難波神社',notes:'開放時間 9:00-17:00',routes:[],nearby:[{name:'心斎橋商店街',dist:'徒步3分'}]},
+    { type:'food',icon:'🍜',name:'心齋橋午餐',time:'13:30',location:'大阪市中央区心斎橋',status:'',statusText:'~¥1,500',mapQuery:'心斎橋 ランチ',notes:'推薦：たこ焼き / きつねうどん / 大阪串炸',routes:[],nearby:[]},
+    { type:'food',icon:'🍲',name:'Shabu-shabu Tonton 心齋橋店',time:'17:00（已預約）',location:'心斎橋',status:'booked',statusText:'✅ 已預約 17:00',mapQuery:'しゃぶしゃぶ とんとん 心斎橋',notes:'已預約 5/2 17:00，請準時',routes:[],nearby:[]},
+    { type:'spot',icon:'🚣',name:'道頓堀遊河船',time:'19:30（已預約）',location:'道頓堀',status:'booked',statusText:'✅ 已預約 19:30',mapQuery:'道頓堀 遊覧船',notes:'約30分鐘水上觀光',routes:[],nearby:[{name:'グリコの看板',dist:'徒步2分'}]},
+    { type:'food',icon:'🍢',name:'炸串 白田屋',time:'20:30',location:'道頓堀周邊',status:'',statusText:'~¥2,000',mapQuery:'白田屋 道頓堀',notes:'大阪著名炸串',routes:[],nearby:[]},
+    { type:'transport',icon:'🚇',name:'道頓堀 → 東急STAY 大阪本町',time:'~22:00',location:'難波 → 本町',status:'',statusText:'',mapQuery:'東急ステイ大阪本町',notes:'',routes:[{label:'御堂筋線',time:'約10分',cost:'¥200',steps:[{icon:'🚇',line:'大阪Metro御堂筋線',sub:'難波→本町 約3分 ¥200'}]}],nearby:[]},
+  ]},
+  { date:'5/3', label:'Day7', tag:'京都/大阪', tagColor:'#8B5CF6', items:[
+    { type:'transport',icon:'🚃',name:'大阪本町 → 下鴨神社',time:'08:30出發',location:'本町 → 下鴨神社（京都）',status:'',statusText:'',mapQuery:'下鴨神社',notes:'建議早出發，京都觀光人多',routes:[
+      {label:'阪急京都線（推薦）',time:'約75分',cost:'¥800',steps:[{icon:'🚇',line:'大阪Metro御堂筋線',sub:'本町→梅田 約5分 ¥230'},{icon:'🚃',line:'阪急京都線 特急',sub:'梅田→烏丸 約45分 ¥420'},{icon:'🚌',line:'京都バス',sub:'烏丸→下鴨神社 約20分 or 徒步30分'}]},
+      {label:'JR→バス',time:'約85分',cost:'¥830',steps:[{icon:'🚇',line:'大阪Metro→JR大阪',sub:'本町→大阪 ¥280'},{icon:'🚆',line:'JR京都線',sub:'大阪→京都 約30分 ¥580'},{icon:'🚌',line:'京都バス',sub:'京都駅→下鴨神社 約25分 ¥250'}]},
+    ],nearby:[]},
+    { type:'spot',icon:'⛩️',name:'下鴨神社',time:'09:15',location:'京都市左京区',status:'',statusText:'免費',mapQuery:'下鴨神社',notes:'世界遺產，開放時間 6:30-17:00，糺の森參道氛圍極佳',routes:[],nearby:[{name:'糺の森',dist:'神社內'}]},
+    { type:'transport',icon:'🚌',name:'下鴨神社 → 清水寺',time:'10:30',location:'下鴨 → 清水寺',status:'',statusText:'',mapQuery:'清水寺',notes:'',routes:[
+      {label:'京都バス17系統',time:'約50分',cost:'¥280',steps:[{icon:'🚌',line:'京都バス 17系統',sub:'下鴨神社→清水道 約40分 ¥280'},{icon:'🚶',line:'徒步',sub:'清水道→清水寺 約10分'}]},
+      {label:'計程車',time:'約20分',cost:'¥2,000~',steps:[{icon:'🚕',line:'計程車',sub:'下鴨神社→清水寺 直達 約20分'}]},
+    ],nearby:[]},
+    { type:'spot',icon:'⛩️',name:'清水寺',time:'10:45',location:'京都市東山区清水',status:'',statusText:'¥500',mapQuery:'清水寺',notes:'世界遺產，開放時間 6:00-18:00，清水舞台絕景必拍',routes:[],nearby:[{name:'産寧坂（三年坂）',dist:'徒步2分'},{name:'二年坂',dist:'徒步5分'},{name:'高台寺',dist:'徒步10分'}]},
+    { type:'transport',icon:'🚌',name:'清水寺 → 伏見稻荷大社',time:'12:30',location:'清水寺 → 伏見稲荷',status:'',statusText:'',mapQuery:'伏見稲荷大社',notes:'',routes:[
+      {label:'市バス+JR',time:'約40分',cost:'¥370',steps:[{icon:'🚌',line:'市巴士 南5系統',sub:'清水道→東福寺 ¥230'},{icon:'🚆',line:'JR奈良線',sub:'東福寺→稲荷 約3分 ¥140'}]},
+      {label:'計程車',time:'約15分',cost:'¥2,000~',steps:[{icon:'🚕',line:'計程車',sub:'清水寺→伏見稲荷大社 約15分'}]},
+    ],nearby:[]},
+    { type:'spot',icon:'⛩️',name:'伏見稻荷大社（千本鳥居）',time:'13:00',location:'京都市伏見区深草',status:'',statusText:'免費',mapQuery:'伏見稲荷大社',notes:'24小時開放，千本鳥居拍照聖地',routes:[],nearby:[{name:'参道みやげ店',dist:'鳥居周邊'}]},
+    { type:'transport',icon:'🚆',name:'伏見稻荷 → Oki Ni Arena Maishima',time:'14:00出發',location:'稲荷 → 西九条 → 桜島 → 舞洲',status:'',statusText:'',mapQuery:'舞洲スポーツアイランド',notes:'⚠️ 舞洲Active Bus班次稀少！建議14:00前出發',routes:[
+      {label:'JR+夢咲線+巴士（推薦）',time:'約70分',cost:'¥660',steps:[{icon:'🚆',line:'JR奈良線→大阪環状線',sub:'稲荷→桃谷/京橋→西九条 約50分 ¥560'},{icon:'🚆',line:'JR夢咲線（桜島線）',sub:'西九条→桜島 約5分 ¥200'},{icon:'🚌',line:'舞洲Active Bus 2A系統',sub:'桜島駅前→舞洲 約12分 ¥100'}]},
+      {label:'計程車（桜島から）',time:'約25分',cost:'¥2,500~',steps:[{icon:'🚕',line:'計程車',sub:'桜島駅→舞洲 約10-15分 ¥2,500~（巴士逾時時使用）'}]},
+    ],nearby:[]},
+    { type:'concert',icon:'🎵',name:'Oki Ni Arena Maishima 演唱會',time:'開演前/~19:00散',location:'大阪市此花区舞洲',status:'ok',statusText:'✅ 已訂票',mapQuery:'オキニアリーナ舞洲',notes:'演唱會約19:00結束',routes:[],nearby:[{name:'大阪海遊館',dist:'計程車15分'}]},
+    { type:'spot',icon:'🌊',name:'大阪海遊館（演唱會前）',time:'15:00前',location:'大阪市港区海岸通',status:'',statusText:'¥2,700',mapQuery:'海遊館 大阪',notes:'世界最大水族館，開放時間 10:00-20:00',routes:[],nearby:[{name:'天保山大觀覧車',dist:'徒步3分'}]},
+    { type:'transport',icon:'🚌',name:'Maishima → 東急STAY 大阪本町',time:'~20:00',location:'舞洲 → 桜島 → 本町',status:'',statusText:'',mapQuery:'東急ステイ大阪本町',notes:'散場後等候巴士約15-20分',routes:[
+      {label:'舞洲バス+JR+Metro',time:'約60分',cost:'¥600',steps:[{icon:'🚌',line:'舞洲Active Bus',sub:'舞洲→桜島 約12分 ¥100'},{icon:'🚆',line:'JR夢咲線→大阪環状線',sub:'桜島→西九条→大阪 約20分 ¥430'},{icon:'🚇',line:'大阪Metro御堂筋線',sub:'梅田→本町 約5分 ¥230'}]},
+      {label:'計程車',time:'約30分',cost:'¥5,000~',steps:[{icon:'🚕',line:'計程車',sub:'舞洲→大阪本町 約30分 ¥5,000~'}]},
+    ],nearby:[]},
+  ]},
+  { date:'5/4', label:'Day8', tag:'奈良/大阪', tagColor:'#059669', items:[
+    { type:'transport',icon:'🚃',name:'大阪本町 → 奈良公園',time:'08:30出發',location:'本町 → 近鉄奈良',status:'',statusText:'',mapQuery:'奈良公園',notes:'GW人超多，建議9點前到',routes:[
+      {label:'大阪Metro+近鉄（推薦）',time:'約55分',cost:'¥800',steps:[{icon:'🚇',line:'大阪Metro御堂筋線',sub:'本町→難波 約5分 ¥240'},{icon:'🚃',line:'近鉄奈良線 特急',sub:'大阪難波→近鉄奈良 約40分 ¥560'},{icon:'🚶',line:'徒步',sub:'近鉄奈良→奈良公園 約10分'}]},
+      {label:'JR大和路線',time:'約70分',cost:'¥820',steps:[{icon:'🚇',line:'大阪Metro→JR大阪',sub:'本町→大阪 ¥280'},{icon:'🚆',line:'JR大和路線 快速',sub:'大阪→奈良 約50分 ¥820'}]},
+    ],nearby:[]},
+    { type:'spot',icon:'🦌',name:'奈良公園（餵小鹿）',time:'09:30',location:'奈良市登大路町',status:'',statusText:'鹿仙貝¥200/包',mapQuery:'奈良公園',notes:'GW期間遊客極多，注意背包，鹿仙貝在公園入口販售',routes:[],nearby:[{name:'春日大社',dist:'徒步15分'},{name:'興福寺',dist:'徒步5分'}]},
+    { type:'spot',icon:'⛩️',name:'東大寺（大佛）',time:'10:30',location:'奈良市雑司町 406-1',status:'',statusText:'¥800',mapQuery:'東大寺',notes:'開放時間 7:30-17:30，世界最大木造建築',routes:[],nearby:[{name:'二月堂',dist:'徒步10分'},{name:'春日大社',dist:'徒步20分'}]},
+    { type:'transport',icon:'🚃',name:'奈良 → 住吉大社',time:'13:00',location:'近鉄奈良 → 住吉大社',status:'',statusText:'',mapQuery:'住吉大社',notes:'',routes:[{label:'近鉄+南海',time:'約70分',cost:'¥780',steps:[{icon:'🚃',line:'近鉄奈良線',sub:'近鉄奈良→難波 約40分 ¥560'},{icon:'🚃',line:'南海電鉄本線',sub:'難波→住吉大社 約15分 ¥220'}]}],nearby:[]},
+    { type:'spot',icon:'⛩️',name:'住吉大社',time:'13:30',location:'大阪市住吉区住吉 2-9-89',status:'',statusText:'免費',mapQuery:'住吉大社',notes:'開放時間 6:00-17:00，全國2300座住吉神社總本社，反橋必拍',routes:[],nearby:[]},
+    { type:'transport',icon:'🚆',name:'住吉大社 → Oki Ni Arena Maishima',time:'14:00出發',location:'住吉大社 → 西九条 → 桜島 → 舞洲',status:'',statusText:'',mapQuery:'オキニアリーナ舞洲',notes:'⚠️ 同Day7路線，舞洲巴士班次少！',routes:[
+      {label:'南海+JR+夢咲線+バス',time:'約60分',cost:'¥650',steps:[{icon:'🚃',line:'南海電鉄→JR大阪環状線',sub:'住吉大社→難波→西九条 約25分 ¥350'},{icon:'🚆',line:'JR夢咲線（桜島線）',sub:'西九条→桜島 約5分 ¥200'},{icon:'🚌',line:'舞洲Active Bus 2A',sub:'桜島→舞洲 約12分 ¥100'}]},
+      {label:'計程車（桜島から）',time:'約25分',cost:'¥2,500~',steps:[{icon:'🚕',line:'計程車',sub:'桜島駅→舞洲 約15分 ¥2,500~'}]},
+    ],nearby:[]},
+    { type:'concert',icon:'🎵',name:'Oki Ni Arena Maishima 演唱會',time:'開演前/~19:00散',location:'大阪市此花区舞洲',status:'ok',statusText:'✅ 已訂票',mapQuery:'オキニアリーナ舞洲',notes:'演唱會約19:00結束',routes:[],nearby:[{name:'大阪海遊館',dist:'計程車15分'}]},
+    { type:'spot',icon:'🌊',name:'大阪海遊館 & 天保山',time:'演唱會前後',location:'大阪市港区海岸通',status:'',statusText:'¥2,700',mapQuery:'海遊館 大阪',notes:'天保山摩天輪，夜間海遊館氛圍更佳',routes:[],nearby:[{name:'天保山大觀覧車',dist:'徒步3分'}]},
+    { type:'transport',icon:'🚌',name:'Maishima → 東急STAY 大阪本町',time:'~20:30',location:'舞洲 → 桜島 → 本町',status:'',statusText:'',mapQuery:'東急ステイ大阪本町',notes:'',routes:[{label:'舞洲バス+JR+Metro',time:'約60分',cost:'¥600',steps:[{icon:'🚌',line:'舞洲Active Bus',sub:'舞洲→桜島 ¥100'},{icon:'🚆',line:'JR夢咲線→Metro',sub:'桜島→本町 ¥480'}]}],nearby:[]},
+  ]},
+  { date:'5/5', label:'Day9', tag:'回程', tagColor:'#E11D48', items:[
+    { type:'hotel',icon:'🏨',name:'東急STAY 大阪本町 Check Out + 行李寄放',time:'08:00',location:'大阪市中央区本町',status:'ok',statusText:'✅ 已訂',mapQuery:'東急ステイ大阪本町',notes:'行李先寄放，下午領取再前往機場',routes:[],nearby:[]},
+    { type:'transport',icon:'🚃',name:'本町 → 勝尾寺',time:'08:30（越早越好）',location:'本町 → 千里中央 → 計程車',status:'',statusText:'',mapQuery:'勝尾寺 大阪',notes:'勝尾寺周邊計程車稀少，越早越好',routes:[
+      {label:'Metro+計程車（推薦）',time:'約45分',cost:'¥2,430',steps:[{icon:'🚇',line:'大阪Metro御堂筋線',sub:'本町→千里中央 約25分 ¥430'},{icon:'🚕',line:'計程車',sub:'千里中央→勝尾寺 約15分 ¥2,000'}]},
+      {label:'Metro北千里+計程車',time:'約50分',cost:'¥2,200',steps:[{icon:'🚇',line:'大阪Metro→阪急千里線',sub:'本町→北千里 約30分 ¥280'},{icon:'🚕',line:'計程車',sub:'北千里→勝尾寺 約20分 ¥2,200~'}]},
+    ],nearby:[]},
+    { type:'spot',icon:'⛩️',name:'勝尾寺（勝ちダルマ）',time:'~09:30',location:'大阪府箕面市粟生間谷',status:'',statusText:'¥400',mapQuery:'勝尾寺',notes:'開放時間 8:00-17:00，勝利之寺，達摩許願著名',routes:[],nearby:[]},
+    { type:'transport',icon:'🚃',name:'勝尾寺 → 大阪本町（領行李）',time:'~11:00',location:'勝尾寺 → 本町',status:'',statusText:'',mapQuery:'東急ステイ大阪本町',notes:'',routes:[{label:'計程車+Metro',time:'約45分',cost:'¥2,430',steps:[{icon:'🚕',line:'計程車',sub:'勝尾寺→千里中央 ¥2,000'},{icon:'🚇',line:'大阪Metro御堂筋線',sub:'千里中央→本町 ¥430'}]}],nearby:[]},
+    { type:'transport',icon:'🚆',name:'本町 → 關西國際機場',time:'11:30出發',location:'難波 → 關西空港',status:'',statusText:'',mapQuery:'関西国際空港',notes:'班機 JX823 15:10起飛，建議11:30出發、12:10前抵達機場（提前3小時）',routes:[
+      {label:'南海RAPI:T（推薦）',time:'約50分',cost:'¥1,690',steps:[{icon:'🚇',line:'大阪Metro御堂筋線',sub:'本町→難波 約5分 ¥240'},{icon:'🚃',line:'南海電鉄 特急RAPI:T',sub:'難波→関西空港 約38分 ¥1,450'}]},
+      {label:'利木津巴士',time:'約60min',cost:'¥1,700',steps:[{icon:'🚌',line:'利木津巴士（心斎橋乗り場）',sub:'心斎橋→関西空港 約60分 ¥1,700（預約制）'}]},
+      {label:'JR はるか',time:'約80分',cost:'¥1,910+',steps:[{icon:'🚆',line:'JR 関空特急はるか',sub:'大阪→天王寺→関西空港 約80分 ¥1,910（需換乗）'}]},
+    ],nearby:[]},
+    { type:'flight',icon:'✈️',name:'JX823 關西→台灣',time:'15:10起飛',location:'關西國際機場',status:'ok',statusText:'✅ 已訂票',mapQuery:'関西国際空港 第1ターミナル',notes:'請於12:10前抵達機場，提前3小時辦理登機。記得退稅！',routes:[],nearby:[]},
+  ]},
+];
+
+const TRANSPORT_OVERVIEW = [
+  { date:'4/27', from:'羽田機場T3', to:'赤坂格蘭貝爾酒店', time:'約45分', cost:'¥650', summary:'京急線→品川→JR山手線→新橋→Metro銀座線', important:true, dayIdx:0, itemIdx:1 },
+  { date:'4/28', from:'銀座/東京', to:'LaLa Arena Tokyo Bay', time:'約50分', cost:'¥650', summary:'Metro銀座線→東京→JR京葉線→南船橋（徒步6分）', important:true, dayIdx:1, itemIdx:12 },
+  { date:'4/28-29', from:'南船橋', to:'赤坂格蘭貝爾酒店', time:'約50分', cost:'¥650', summary:'JR京葉線→東京→Metro銀座線→赤坂見附', important:false, dayIdx:1, itemIdx:14 },
+  { date:'5/2', from:'東京駅（新幹線）', to:'新大阪駅', time:'2h21m', cost:'¥14,720', summary:'東海道新幹線 のぞみ 9:00發車 ⚠️GW全席指定', important:true, dayIdx:5, itemIdx:1 },
+  { date:'5/3-4', from:'各處', to:'Oki Ni Arena Maishima', time:'約70分', cost:'¥660', summary:'JR→西九条→JR夢咲線→桜島→舞洲Active Bus 2A ⚠️班次少！', important:true, dayIdx:6, itemIdx:5 },
+  { date:'5/5', from:'難波', to:'關西國際機場', time:'約50分', cost:'¥1,690', summary:'Metro→難波→南海RAPI:T特急→關西空港', important:false, dayIdx:8, itemIdx:3 },
+];
+
+// ====== PAGE SWITCH ======
+function switchPage(name, el) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById('page-' + name).classList.add('active');
+  el.classList.add('active');
+  if (name === 'expense') renderExpenses();
+  if (name === 'people') renderParticipants();
+}
+
+// ====== SCHEDULE ======
+function buildDayStrip() {
+  const strip = document.getElementById('dayStrip');
+  DAYS.forEach((d, i) => {
+    const chip = document.createElement('div');
+    chip.className = 'day-chip' + (i === 0 ? ' active' : '');
+    chip.textContent = d.date + ' ' + d.label;
+    chip.onclick = () => selectDay(i);
+    strip.appendChild(chip);
+  });
+}
+
+function selectDay(i) {
+  currentDay = i;
+  document.querySelectorAll('.day-chip').forEach((c, ci) => c.classList.toggle('active', ci === i));
+  renderTimeline();
+}
+
+function typeClass(t) {
+  return ({spot:'dot-spot',food:'dot-food',transport:'dot-transport',hotel:'dot-hotel',concert:'dot-concert',flight:'dot-flight',shop:'dot-shop'})[t] || 'dot-spot';
+}
+
+function renderTimeline() {
+  const d = DAYS[currentDay];
+  const wrap = document.getElementById('timelineWrap');
+  wrap.innerHTML = `<div class="day-header">
+    <div class="day-badge">${d.label}</div>
+    <div style="flex:1">
+      <div style="font-size:15px;font-weight:500;">${d.date}</div>
+      <div style="font-size:11px;color:${d.tagColor};margin-top:2px;">${d.tag}</div>
+    </div>
+  </div><div class="timeline" id="tlInner"></div>`;
+  const tl = document.getElementById('tlInner');
+  d.items.forEach((item, idx) => {
+    const el = document.createElement('div');
+    el.className = 'tl-item';
+    const statusHtml = item.status ? `<span class="tl-status status-${item.status}">${item.statusText}</span>` : (item.statusText ? `<span style="font-size:11px;color:var(--muted);margin-top:4px;display:inline-block;">${item.statusText}</span>` : '');
+    const hasRoute = item.routes && item.routes.length > 0;
+    el.innerHTML = `
+      <div class="tl-dot ${typeClass(item.type)}" onclick="openItemDetail(${currentDay},${idx})">${item.icon}</div>
+      <div class="tl-card" onclick="openItemDetail(${currentDay},${idx})">
+        <div class="tl-card-top">
+          <div class="tl-name">${item.name}</div>
+          <div class="tl-time">${item.time}</div>
+        </div>
+        ${item.location ? `<div class="tl-location"><span style="font-size:10px;">📍</span>${item.location}</div>` : ''}
+        ${statusHtml}
+        ${hasRoute ? `<div class="tl-transport-tag"><span>🚇</span> 查看路線（${item.routes.length}種方案）</div>` : ''}
+      </div>`;
+    tl.appendChild(el);
+  });
+}
+
+// ====== ITEM DETAIL MODAL ======
+let selectedRouteIdx = 0;
+
+function openItemDetail(dayIdx, itemIdx) {
+  selectedRouteIdx = 0;
+  renderItemDetail(dayIdx, itemIdx, selectedRouteIdx);
+  openModal('detailModal');
+}
+
+function renderItemDetail(dayIdx, itemIdx, routeIdx) {
+  const item = DAYS[dayIdx].items[itemIdx];
+  const mapUrl = `https://maps.google.com/maps?q=${encodeURIComponent(item.mapQuery)}`;
+  const navUrl = `https://maps.google.com/maps?daddr=${encodeURIComponent(item.mapQuery)}&dirflg=r`;
+  const mapsAppUrl = `comgooglemaps://?q=${encodeURIComponent(item.mapQuery)}`;
+  const typeLabels = {spot:'景點',food:'餐飲',transport:'交通',hotel:'住宿',concert:'演唱會',flight:'航班',shop:'購物'};
+
+  // Route selector
+  let routeHtml = '';
+  if (item.routes && item.routes.length > 0) {
+    const tabs = item.routes.map((r, i) => `<button class="route-tab ${i === routeIdx ? 'active' : ''}" onclick="switchRoute(${dayIdx},${itemIdx},${i})">${r.label}</button>`).join('');
+    const r = item.routes[routeIdx];
+    const stepsHtml = r.steps.map(s => `<div class="route-step"><div class="route-icon">${s.icon}</div><div style="flex:1"><div class="route-line">${s.line}</div><div class="route-sub">${s.sub}</div></div></div>`).join('');
+    routeHtml = `
+      <div style="font-size:13px;font-weight:500;margin:16px 0 8px;">🚇 交通路線</div>
+      <div class="route-tabs">${tabs}</div>
+      <div class="route-card" id="routeCardDetail">
+        ${stepsHtml}
+        <div class="route-meta"><span>⏱ ${r.time}</span><span>💴 ${r.cost}</span></div>
+      </div>
+      <button class="btn-map" onclick="openGoogleMapsTransit('${encodeURIComponent(item.mapQuery)}')">🗺 Google Maps 即時路線查詢</button>`;
+  }
+
+  // Nearby
+  let nearbyHtml = '';
+  if (item.nearby && item.nearby.length > 0) {
+    nearbyHtml = `<div style="font-size:13px;font-weight:500;margin:16px 0 8px;">📍 周邊推薦</div>
+      <div class="nearby-grid">${item.nearby.map(n => `<div class="nearby-card" onclick="openMap('${encodeURIComponent(n.name)}')"><div class="nearby-name">${n.name}</div><div class="nearby-dist">${n.dist}</div></div>`).join('')}</div>`;
+  }
+
+  document.getElementById('modalContent').innerHTML = `
+    <div class="modal-type">${typeLabels[item.type] || item.type}</div>
+    <div class="modal-title">${item.name}</div>
+    <div class="modal-subtitle">${item.location}</div>
+    ${item.notes ? `<div class="info-row"><div class="info-label">備注</div><div class="info-value">${item.notes}</div></div>` : ''}
+    <div class="info-row"><div class="info-label">時間</div><div class="info-value">${item.time}</div></div>
+    ${item.statusText ? `<div class="info-row"><div class="info-label">狀態</div><div class="info-value">${item.statusText}</div></div>` : ''}
+    ${routeHtml}
+    ${nearbyHtml}
+    <div style="margin-top:20px;">
+      <button class="btn-map" onclick="openMap('${encodeURIComponent(item.mapQuery)}')">📍 Google Maps 查看位置</button>
+      <button class="btn-nav" onclick="openMapNav('${encodeURIComponent(item.mapQuery)}')">🧭 Google Maps 導航前往</button>
+    </div>`;
+  // Store for route switching
+  document.getElementById('detailModal').dataset.dayIdx = dayIdx;
+  document.getElementById('detailModal').dataset.itemIdx = itemIdx;
+}
+
+function switchRoute(dayIdx, itemIdx, routeIdx) {
+  selectedRouteIdx = routeIdx;
+  renderItemDetail(dayIdx, itemIdx, routeIdx);
+}
+
+// ====== GOOGLE MAPS - FIX: use window.open with proper URL ======
+function openMap(encodedQuery) {
+  const url = 'https://www.google.com/maps/search/?api=1&query=' + encodedQuery;
+  window.open(url, '_blank', 'noopener');
+}
+
+function openMapNav(encodedQuery) {
+  const url = 'https://www.google.com/maps/dir/?api=1&destination=' + encodedQuery + '&travelmode=transit';
+  window.open(url, '_blank', 'noopener');
+}
+
+function openGoogleMapsTransit(encodedDest) {
+  const url = 'https://www.google.com/maps/dir/?api=1&destination=' + encodedDest + '&travelmode=transit';
+  window.open(url, '_blank', 'noopener');
+}
+
+// ====== TRANSPORT PAGE ======
+function buildTransportPage() {
+  document.getElementById('transportList').innerHTML = TRANSPORT_OVERVIEW.map((t, i) => `
+    <div class="trans-item ${t.important ? 'important' : ''}" onclick="openTransportDetail(${i})">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px;">
+        <div style="font-size:13px;font-weight:500;flex:1;">${t.from} → ${t.to}</div>
+        <div style="font-size:11px;color:var(--muted);margin-left:8px;">${t.date}</div>
+      </div>
+      <div style="font-size:12px;color:#3B82F6;margin-bottom:4px;">🚇 ${t.summary}</div>
+      <div style="display:flex;gap:16px;font-size:11px;color:var(--muted);">
+        <span>⏱ ${t.time}</span><span>💴 ${t.cost}</span>
+      </div>
+    </div>`).join('');
+}
+
+function openTransportDetail(i) {
+  const t = TRANSPORT_OVERVIEW[i];
+  openItemDetail(t.dayIdx, t.itemIdx);
+}
+
+// ====== PARTICIPANTS ======
+function renderParticipants() {
+  const roleColors = { admin:['#FFF0F0','#E11D48'], edit:['#EFF6FF','#2563EB'], view:['#F3F4F6','#6B7280'] };
+  const roleLabels = { admin:'管理者', edit:'可編輯', view:'僅觀看' };
+  document.getElementById('participantList').innerHTML = members.map((m, i) => {
+    const [bg, fg] = roleColors[m.role] || roleColors.view;
+    return `<div class="participant">
+      <div class="avatar" style="background:${bg};color:${fg};">${m.name[0]}</div>
+      <div style="flex:1"><div class="p-name">${m.name}</div><div class="p-role">${m.role === 'admin' ? '行程管理者' : m.role === 'edit' ? '可編輯行程' : '僅能觀看'}</div></div>
+      <div style="display:flex;align-items:center;gap:8px;">
+        <span class="role-badge" style="background:${bg};color:${fg};">${roleLabels[m.role]}</span>
+        ${i > 0 ? `<button onclick="removeMember(${i})" style="background:none;border:none;color:#EF4444;cursor:pointer;font-size:14px;padding:4px;">✕</button>` : ''}
+      </div>
+    </div>`;
+  }).join('');
+
+  if (deployUrl) {
+    document.getElementById('deployUrlInput').value = deployUrl;
+    document.getElementById('shareUrlDisplay').textContent = deployUrl;
+    document.getElementById('shareBox').style.display = 'block';
+  }
+}
+
+function addMember() {
+  const name = document.getElementById('newMemberName').value.trim();
+  const role = document.getElementById('newMemberRole').value;
+  if (!name) { alert('請輸入成員姓名'); return; }
+  if (members.find(m => m.name === name)) { alert('此成員已存在'); return; }
+  members.push({ name, role, roleLabel: { admin:'管理者', edit:'可編輯', view:'僅觀看' }[role] });
+  saveMembers();
+  document.getElementById('newMemberName').value = '';
+  renderParticipants();
+}
+
+function removeMember(i) {
+  if (!confirm(`確認移除 ${members[i].name}？`)) return;
+  members.splice(i, 1);
+  saveMembers();
+  renderParticipants();
+}
+
+function saveDeployUrl() {
+  const val = document.getElementById('deployUrlInput').value.trim();
+  if (!val) return;
+  deployUrl = val;
+  localStorage.setItem('jp_deploy_url', deployUrl);
+  document.getElementById('shareUrlDisplay').textContent = deployUrl;
+  document.getElementById('shareBox').style.display = 'block';
+}
+
+function copyShareUrl() {
+  navigator.clipboard.writeText(deployUrl).then(() => {
+    const btn = document.querySelector('.copy-btn');
+    const orig = btn.textContent;
+    btn.textContent = '✅ 已複製！';
+    setTimeout(() => btn.textContent = orig, 2000);
+  }).catch(() => {
+    alert('請手動複製：' + deployUrl);
+  });
+}
+
+function openShareUrl() {
+  window.open(deployUrl, '_blank', 'noopener');
+}
+
+// ====== EXPENSES ======
+function renderExpenses() {
+  const filtered = expFilterDay === 'all' ? expenses : expenses.filter(e => e.day.startsWith(expFilterDay));
+  const total = filtered.reduce((s, e) => s + e.amount, 0);
+  document.getElementById('totalExp').textContent = '¥' + total.toLocaleString();
+  document.getElementById('perPerson').textContent = members.length > 0 ? '¥' + Math.round(total / members.length).toLocaleString() : '¥0';
+  document.getElementById('expCount').textContent = filtered.length;
+
+  const days = ['4/27','4/28','4/29','4/30','5/1','5/2','5/3','5/4','5/5'];
+  document.getElementById('expFilter').innerHTML = ['all', ...days].map(d =>
+    `<div class="filter-chip ${expFilterDay === d ? 'active' : ''}" onclick="setExpFilter('${d}')">${d === 'all' ? '全部' : d}</div>`
+  ).join('');
+
+  document.getElementById('expenseList').innerHTML = filtered.length ? filtered.map(e => {
+    const perP = e.split && e.split.length > 0 ? Math.round(e.amount / e.split.length) : e.amount;
+    return `<div class="expense-item" onclick="openExpDetail(${e.id})">
+      <div class="exp-icon">${e.cat.split(' ')[0]}</div>
+      <div class="exp-info"><div class="exp-name">${e.name}</div><div class="exp-meta">${e.day} · 付款：${e.payer}</div></div>
+      <div><div class="exp-amount">¥${e.amount.toLocaleString()}</div><div class="exp-per">每人¥${perP.toLocaleString()}</div></div>
+    </div>`;
+  }).join('') : '<div style="text-align:center;color:var(--muted);padding:40px 20px;font-size:14px;">尚無記錄<br><span style="font-size:12px;margin-top:4px;display:block;">點擊右下角 ＋ 新增</span></div>';
+}
+
+function setExpFilter(d) { expFilterDay = d; renderExpenses(); }
+
+function openExpDetail(id) {
+  const e = expenses.find(x => x.id === id);
+  if (!e) return;
+  const splitList = e.split || members.map(m => m.name);
+  const perP = splitList.length > 0 ? Math.round(e.amount / splitList.length) : e.amount;
+  const rows = splitList.map(name => {
+    const isPayer = name === e.payer;
+    return `<tr>
+      <td>${name}</td>
+      <td>${isPayer ? '<span class="paid-tag">付款人</span>' : ''}</td>
+      <td style="text-align:right;">¥${perP.toLocaleString()}</td>
+      <td style="text-align:right;${isPayer ? 'color:#059669;' : 'color:#D97706;'}">${isPayer ? `+¥${(e.amount - perP).toLocaleString()}` : `-¥${perP.toLocaleString()}`}</td>
+    </tr>`;
+  }).join('');
+  document.getElementById('modalContent').innerHTML = `
+    <div class="modal-type">費用明細</div>
+    <div class="modal-title">${e.name}</div>
+    <div class="modal-subtitle">${e.day} · ${e.cat}</div>
+    <div class="info-row"><div class="info-label">總金額</div><div class="info-value" style="font-size:18px;font-weight:500;">¥${e.amount.toLocaleString()}</div></div>
+    <div class="info-row"><div class="info-label">付款人</div><div class="info-value">${e.payer}</div></div>
+    <div class="info-row"><div class="info-label">分攤人數</div><div class="info-value">${splitList.length} 人</div></div>
+    <div style="font-size:13px;font-weight:500;margin:16px 0 8px;">📊 分帳明細</div>
+    <table class="split-table">
+      <thead><tr><th>成員</th><th></th><th style="text-align:right;">應付</th><th style="text-align:right;">收支</th></tr></thead>
+      <tbody>${rows}</tbody>
+    </table>
+    <button onclick="deleteExpense(${e.id})" style="width:100%;margin-top:20px;border:0.5px solid #FCA5A5;color:#EF4444;background:#FFF5F5;border-radius:12px;padding:12px;font-size:14px;cursor:pointer;font-family:inherit;">🗑 刪除此筆</button>`;
+  openModal('detailModal');
+}
+
+function deleteExpense(id) {
+  if (!confirm('確認刪除此筆費用？')) return;
+  expenses = expenses.filter(e => e.id !== id);
+  saveExpenses();
+  closeModal('detailModal');
+  renderExpenses();
+}
+
+function openAddExpense() {
+  // Payer dropdown from members
+  document.getElementById('expPayerInput').innerHTML = members.map(m => `<option value="${m.name}">${m.name}</option>`).join('');
+  // Split checkboxes from members
+  document.getElementById('splitCheckboxes').innerHTML = members.map(m =>
+    `<div class="cb-item selected" onclick="toggleSplit(this,'${m.name}')" data-name="${m.name}">${m.name}</div>`
+  ).join('');
+  openModal('addExpModal');
+}
+
+function toggleSplit(el, name) { el.classList.toggle('selected'); }
+function selectAllSplit() { document.querySelectorAll('#splitCheckboxes .cb-item').forEach(el => el.classList.add('selected')); }
+function clearSplit() { document.querySelectorAll('#splitCheckboxes .cb-item').forEach(el => el.classList.remove('selected')); }
+
+function saveExpense() {
+  const name = document.getElementById('expNameInput').value.trim();
+  const amt = parseInt(document.getElementById('expAmtInput').value);
+  const cat = document.getElementById('expCatInput').value;
+  const day = document.getElementById('expDayInput').value;
+  const payer = document.getElementById('expPayerInput').value;
+  const split = [...document.querySelectorAll('#splitCheckboxes .cb-item.selected')].map(el => el.dataset.name);
+  if (!name || !amt || !payer || split.length === 0) { alert('請填寫完整資訊，並選擇至少一位分攤成員'); return; }
+  expenses.push({ id: Date.now(), name, amount: amt, cat, day, payer, split });
+  saveExpenses();
+  document.getElementById('expNameInput').value = '';
+  document.getElementById('expAmtInput').value = '';
+  closeModal('addExpModal');
+  renderExpenses();
+}
+
+// ====== MODAL ======
+function openModal(id) { document.getElementById(id).classList.add('show'); }
+function closeModal(id) { document.getElementById(id).classList.remove('show'); }
+
+// ====== INIT ======
+buildDayStrip();
+renderTimeline();
+buildTransportPage();
+renderParticipants();
+renderExpenses();
+</script>
+</body>
+</html>
