@@ -824,34 +824,65 @@ function renderTimelineItems(dayIdx) {
     el.className = 'tl-item';
     el.dataset.dayIdx = dayIdx;
     el.dataset.itemIdx = idx;
+    const isTransport = item.type === 'transport' || !!item._autoTransport;
     const hasRoute = item.routes && item.routes.length > 0;
     const isCustom = item._custom || item._autoTransport;
     const displayTime = item.arrivalTime || item.time || '';
     const lockIcon = item.lockedArrival ? ' 🔒' : '';
+
+    // ── Conflict badge
     const conflictBadge = item._conflict
-      ? `<span style="font-size:10px;background:#FEE2E2;color:#EF4444;border-radius:6px;padding:2px 6px;margin-top:4px;display:inline-block;">⚠️ 時間衝突</span><br>`
+      ? `<span style="font-size:10px;background:#FEE2E2;color:#EF4444;border-radius:6px;padding:2px 6px;display:inline-block;margin-bottom:2px;">⚠️ 時間衝突</span><br>`
       : '';
-    const effectiveStay = (item.stayMins != null && item.stayMins >= 0) ? item.stayMins : 30;
-    const stayLine = (item.type !== 'transport' && !item._autoTransport)
-      ? `<span style="font-size:11px;color:var(--muted);">⏱ 停留 ${effectiveStay} 分鐘</span> `
-      : '';
+
+    // ── Transport card: show depart → arrive + duration
+    let transportInfo = '';
+    if (isTransport) {
+      const tMins = getTransportMins(item);
+      const depart = item._departTime || displayTime;
+      const arrive = item._calcArrival || '';
+      const durStr = tMins ? `${tMins} 分鐘` : '待查詢';
+      transportInfo = `
+        <div style="display:flex;align-items:center;gap:6px;margin-top:6px;font-size:12px;">
+          <span style="color:var(--ink-soft);font-weight:500;">${depart}</span>
+          <span style="color:var(--muted);">→</span>
+          <span style="color:var(--sakura-deep);font-weight:500;">${arrive || '?'}</span>
+          <span style="background:#EFF6FF;color:#3B82F6;border-radius:20px;padding:1px 7px;font-size:11px;">⏱ ${durStr}</span>
+        </div>`;
+    }
+
+    // ── Spot card: show stay time + buffer
+    let spotInfo = '';
+    if (!isTransport) {
+      const effectiveStay = (item.stayMins != null && item.stayMins >= 0) ? item.stayMins : 30;
+      const stayStr = effectiveStay >= 60
+        ? `${Math.floor(effectiveStay/60)}h${effectiveStay%60 ? (effectiveStay%60)+'m' : ''}`
+        : `${effectiveStay}分`;
+      let bufferStr = '';
+      if (item._bufferMins && item._bufferMins > 0) {
+        bufferStr = `<span style="background:#ECFDF5;color:#059669;border-radius:20px;padding:1px 7px;font-size:11px;margin-left:4px;">+${item._bufferMins}分 提前</span>`;
+      }
+      spotInfo = `<div style="margin-top:4px;"><span style="font-size:11px;color:var(--muted);">⏱ 停留 ${stayStr}</span>${bufferStr}</div>`;
+    }
+
     const statusHtml = item.status
       ? `<span class="tl-status status-${item.status}">${item.statusText}</span>`
-      : (item.statusText ? `<span style="font-size:11px;color:var(--muted);margin-top:4px;display:inline-block;">${item.statusText}</span>` : '');
+      : (item.statusText && !isTransport ? `<span style="font-size:11px;color:var(--muted);margin-top:2px;display:inline-block;">${item.statusText}</span>` : '');
+
     el.innerHTML = `
       <div class="tl-drag-handle" data-day="${dayIdx}" data-idx="${idx}">⠿</div>
       <div class="tl-dot ${typeClass(item.type)}" onclick="openItemDetail(${dayIdx},${idx})">${item.icon}</div>
-      <div class="tl-card" onclick="openItemDetail(${dayIdx},${idx})">
+      <div class="tl-card" onclick="openItemDetail(${dayIdx},${idx})" style="${isTransport ? 'background:#F8FAFF;border-color:#DBEAFE;' : ''}">
         <div class="tl-card-top">
-          <div class="tl-name">${item.name}${isCustom ? ' <span style="font-size:10px;background:#FFF0F4;color:var(--sakura-deep);border-radius:6px;padding:1px 5px;">自訂</span>' : ''}</div>
+          <div class="tl-name" style="${isTransport ? 'font-size:13px;color:#3B82F6;' : ''}">${item.name}${isCustom && !isTransport ? ' <span style="font-size:10px;background:#FFF0F4;color:var(--sakura-deep);border-radius:6px;padding:1px 5px;">自訂</span>' : ''}</div>
           <div style="display:flex;align-items:center;gap:3px;flex-shrink:0;">
-            <span class="tl-time" style="${item.lockedArrival ? 'color:var(--sakura-deep);font-weight:500;' : ''}">${displayTime}${lockIcon}</span>
-            <button onclick="event.stopPropagation();openEditSpot(${dayIdx},${idx})" style="background:var(--surface);border:none;border-radius:8px;padding:3px 7px;font-size:11px;color:var(--muted);cursor:pointer;font-family:inherit;">✎</button>
+            ${!isTransport ? `<span class="tl-time" style="${item.lockedArrival ? 'color:var(--sakura-deep);font-weight:500;' : ''}">${displayTime}${lockIcon}</span>` : ''}
+            <button onclick="event.stopPropagation();openEditSpot(${dayIdx},${idx})" style="background:rgba(0,0,0,0.04);border:none;border-radius:8px;padding:3px 7px;font-size:11px;color:var(--muted);cursor:pointer;font-family:inherit;">✎</button>
           </div>
         </div>
-        ${item.location ? `<div class="tl-location"><span style="font-size:10px;">📍</span>${item.location}</div>` : ''}
-        <div style="margin-top:4px;">${conflictBadge}${stayLine}${statusHtml}</div>
-        ${hasRoute ? `<div class="tl-transport-tag"><span>🚇</span> 查看路線（${item.routes.length}種）</div>` : ''}
+        ${item.location && !isTransport ? `<div class="tl-location"><span style="font-size:10px;">📍</span>${item.location}</div>` : ''}
+        <div style="margin-top:2px;">${conflictBadge}${transportInfo}${spotInfo}${statusHtml}</div>
+        ${hasRoute ? `<div class="tl-transport-tag" style="margin-top:6px;"><span>🚇</span> 路線（${item.routes.length}種）</div>` : ''}
       </div>`;
     const handle = el.querySelector('.tl-drag-handle');
     handle.addEventListener('touchstart', onDragTouchStart, { passive: true });
@@ -931,6 +962,7 @@ function onDragTouchEnd(e) {
     const [moved] = items.splice(itemIdx, 1);
     const insertAt = newIdx > itemIdx ? newIdx - 1 : newIdx;
     items.splice(insertAt, 0, moved);
+    syncTransportCards(dayIdx);
     recalcDayTimes(dayIdx);
     renderTimelineItems(dayIdx);
   }
@@ -973,7 +1005,7 @@ function saveNewSpot() {
   const notes = document.getElementById('spotNotesInput').value.trim();
   const newItem = { type, icon: typeIcon(type), name, time, location:'', status:'', statusText:'', mapQuery: name + ' Japan', notes, routes:[], nearby:[], _custom:true };
   DAYS[di].items.splice(pos + 1, 0, newItem);
-  autoInjectTransport(di, pos + 1);
+  syncTransportCards(di);
   closeModal('addSpotModal');
   currentDay = di;
   buildDayStrip();
@@ -1030,7 +1062,8 @@ function saveEditSpot() {
   if (newDay !== _editDayIdx || newPos !== _editItemIdx - 1) {
     DAYS[_editDayIdx].items.splice(_editItemIdx, 1);
     DAYS[newDay].items.splice(newPos + 1, 0, item);
-    autoInjectTransport(newDay, newPos + 1);
+    syncTransportCards(newDay);
+    if (newDay !== _editDayIdx) syncTransportCards(_editDayIdx);
     currentDay = newDay;
     buildDayStrip();
     if (newDay !== _editDayIdx) renderDayContent(_editDayIdx);
@@ -1046,6 +1079,7 @@ function saveEditSpot() {
 function deleteSpot() {
   if (!confirm(`確認移除「${DAYS[_editDayIdx].items[_editItemIdx].name}」？`)) return;
   DAYS[_editDayIdx].items.splice(_editItemIdx, 1);
+  syncTransportCards(_editDayIdx);
   closeModal('editSpotModal');
   renderDayContent(_editDayIdx);
 }
@@ -1090,40 +1124,63 @@ function getTransportMins(item) {
 
 function recalcDayTimes(dayIdx) {
   const items = DAYS[dayIdx].items;
-  let cursor = null;
+  let cursor = null; // minutes from midnight
 
   for (let i = 0; i < items.length; i++) {
     const item = items[i];
     item._conflict = false;
+    item._bufferMins = null;
+    item._departTime = null;
+    item._calcArrival = null;
 
     const isTransport = item.type === 'transport' || !!item._autoTransport;
 
     if (item.lockedArrival && item.arrivalTime) {
-      // This item has a locked time
       const locked = parseTime(item.arrivalTime);
       if (locked !== null) {
-        // Conflict: cursor has already passed this locked time
-        if (cursor !== null && cursor > locked) {
-          item._conflict = true;
-        }
-        // Snap cursor to locked time regardless
+        if (cursor !== null && cursor > locked) item._conflict = true;
         cursor = locked;
       }
     } else if (cursor !== null) {
-      // Auto-compute: push arrival time from cursor
       item.arrivalTime = fmtTime(cursor);
       item._computed = true;
     }
 
-    // Advance cursor by this item's duration
+    // Advance cursor and annotate transport cards with depart/arrive
     if (cursor !== null) {
       if (isTransport) {
         const tMins = getTransportMins(item);
-        if (tMins != null) cursor += tMins;
+        item._departTime = fmtTime(cursor);
+        if (tMins != null) {
+          cursor += tMins;
+          item._calcArrival = fmtTime(cursor);
+          item.arrivalTime = item._departTime; // transport "arrival" = depart for display
+        }
       } else {
-        // default stayMins=30 if not set
         const stay = (item.stayMins != null && item.stayMins >= 0) ? item.stayMins : 30;
         cursor += stay;
+
+        // Look ahead: if next non-transport item is locked, compute buffer
+        let nextLocked = null;
+        let transportDur = 0;
+        for (let j = i + 1; j < items.length; j++) {
+          const ni = items[j];
+          if (ni.type === 'transport' || ni._autoTransport) {
+            const d = getTransportMins(ni);
+            if (d) transportDur += d;
+          } else {
+            if (ni.lockedArrival && ni.arrivalTime) {
+              nextLocked = parseTime(ni.arrivalTime);
+            }
+            break;
+          }
+        }
+        if (nextLocked !== null) {
+          const needed = cursor + transportDur;
+          if (nextLocked > needed) {
+            item._bufferMins = nextLocked - needed;
+          }
+        }
       }
     }
   }
@@ -1132,14 +1189,56 @@ function recalcDayTimes(dayIdx) {
 function recalcAllDays() {
   DAYS.forEach((_, i) => recalcDayTimes(i));
 }
-function autoInjectTransport(dayIdx, insertedIdx) {
+// ====== TRANSPORT SYNC (問題 3+4) ======
+// Called after any reorder/add/delete — ensures exactly one transport card
+// exists between every pair of adjacent non-transport spots.
+function syncTransportCards(dayIdx) {
   const items = DAYS[dayIdx].items;
-  const prev = insertedIdx > 0 ? items[insertedIdx - 1] : null;
-  const curr = items[insertedIdx];
-  if (prev && prev.type !== 'transport' && curr && curr.type !== 'transport' && prev.type !== 'flight') {
-    const tCard = makeAutoTransport(prev.name, curr.name, prev.mapQuery || prev.name, curr.mapQuery || curr.name);
-    items.splice(insertedIdx, 0, tCard);
+  let changed = true;
+  while (changed) {
+    changed = false;
+    for (let i = 0; i < items.length - 1; i++) {
+      const a = items[i];
+      const b = items[i + 1];
+      const aIsSpot = a.type !== 'transport' && !a._autoTransport && a.type !== 'flight';
+      const bIsSpot = b.type !== 'transport' && !b._autoTransport && b.type !== 'flight';
+      const aIsTransport = a.type === 'transport' || !!a._autoTransport;
+      const bIsTransport = b.type === 'transport' || !!b._autoTransport;
+
+      // Two adjacent non-transport spots with no transport between → inject
+      if (aIsSpot && bIsSpot) {
+        const tCard = makeAutoTransport(a.name, b.name, a.mapQuery || a.name, b.mapQuery || b.name);
+        items.splice(i + 1, 0, tCard);
+        changed = true;
+        break;
+      }
+      // Two adjacent transport cards → remove the second (redundant)
+      if (aIsTransport && bIsTransport) {
+        items.splice(i + 1, 1);
+        changed = true;
+        break;
+      }
+    }
   }
+  // Update transport card names/queries to match current neighbours
+  for (let i = 0; i < items.length; i++) {
+    const item = items[i];
+    if ((item.type === 'transport' || item._autoTransport) && item._autoTransport) {
+      const prev = i > 0 ? items[i - 1] : null;
+      const next = i < items.length - 1 ? items[i + 1] : null;
+      if (prev && next) {
+        item._fromQuery = prev.mapQuery || prev.name;
+        item._toQuery = next.mapQuery || next.name;
+        item.name = `${prev.name.slice(0,14)} → ${next.name.slice(0,14)}`;
+        item.location = item.name;
+        item.mapQuery = item._toQuery;
+      }
+    }
+  }
+}
+
+function autoInjectTransport(dayIdx, insertedIdx) {
+  syncTransportCards(dayIdx);
 }
 
 function makeAutoTransport(fromName, toName, fromQuery, toQuery) {
@@ -1570,6 +1669,7 @@ function closeModal(id) {
 }
 
 // ====== INIT ======
+DAYS.forEach((_, i) => syncTransportCards(i));
 buildDayStrip();
 buildSwiperSlides();
 buildTransportPage();
