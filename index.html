@@ -33,10 +33,10 @@ body{font-family:'Noto Sans TC',sans-serif;background:var(--cream);color:var(--i
 .tl-item.drag-over{border-top:2.5px solid var(--sakura-deep);}
 .tl-drag-handle{width:20px;display:flex;align-items:center;justify-content:center;color:#C0C0C8;cursor:grab;font-size:16px;flex-shrink:0;touch-action:none;user-select:none;}
 .tl-drag-handle:active{cursor:grabbing;}
-/* SWIPE PAGE */
-#scheduleSwiper{overflow:hidden;width:100%;}
-.swiper-track{display:flex;width:100%;transition:transform .3s cubic-bezier(.25,.46,.45,.94);}
-.swiper-slide{min-width:100%;width:100%;}
+/* SWIPE PAGE — slides stack via position, not overflow:hidden */
+#swiperTrack{position:relative;width:100%;overflow:visible;}
+.swiper-slide{position:absolute;top:0;left:0;width:100%;visibility:hidden;pointer-events:none;}
+.swiper-slide.active-slide{position:relative;visibility:visible;pointer-events:all;}
 .tl-dot{width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0;z-index:1;cursor:pointer;transition:transform .2s;border:2px solid white;box-shadow:var(--shadow);}
 .tl-dot:active{transform:scale(0.92);}
 .dot-spot{background:#FFF5F7;}.dot-food{background:#FFF9E6;}.dot-transport{background:#EFF6FF;}.dot-hotel{background:#ECFDF5;}.dot-concert{background:#FFF0F0;}.dot-flight{background:#F0F4FF;}.dot-shop{background:#F5F0FF;}
@@ -143,6 +143,19 @@ body{font-family:'Noto Sans TC',sans-serif;background:var(--cream);color:var(--i
 /* NOTICE */
 .deploy-notice{background:#FFF9E6;border:1px solid #FCD34D;border-radius:12px;margin:12px 20px;padding:14px;font-size:13px;line-height:1.6;}
 .deploy-notice strong{color:#92400E;}
+/* SCROLL TIME PICKER */
+.picker-wrap{display:flex;align-items:center;justify-content:center;gap:6px;margin:16px 0;}
+.picker-col-label{font-size:11px;color:var(--muted);text-align:center;margin-bottom:4px;}
+.picker-container{position:relative;width:72px;height:132px;}
+.picker-scroll{height:132px;overflow-y:scroll;scroll-snap-type:y mandatory;scrollbar-width:none;width:72px;}
+.picker-scroll::-webkit-scrollbar{display:none;}
+.picker-item{height:44px;display:flex;align-items:center;justify-content:center;font-size:22px;color:var(--muted);scroll-snap-align:start;user-select:none;transition:all .12s;}
+.picker-item.picker-selected{font-size:28px;font-weight:500;color:var(--ink);}
+.picker-container::before,.picker-container::after{content:'';position:absolute;left:0;right:0;height:40px;z-index:2;pointer-events:none;}
+.picker-container::before{top:0;background:linear-gradient(to bottom,rgba(255,255,255,1),rgba(255,255,255,0));}
+.picker-container::after{bottom:0;background:linear-gradient(to top,rgba(255,255,255,1),rgba(255,255,255,0));}
+.picker-sel-line{position:absolute;left:0;right:0;top:44px;height:44px;border-top:1.5px solid var(--sakura);border-bottom:1.5px solid var(--sakura);pointer-events:none;z-index:3;}
+.te-colon{font-size:28px;font-weight:300;color:var(--muted);margin-top:16px;}
 .deploy-steps{background:white;border-radius:12px;margin:0 20px 12px;padding:14px;border:0.5px solid var(--border);font-size:12px;line-height:1.8;color:var(--ink-soft);}
 .deploy-steps code{background:#F3F4F6;padding:2px 6px;border-radius:4px;font-size:11px;}
 </style>
@@ -165,94 +178,9 @@ body{font-family:'Noto Sans TC',sans-serif;background:var(--cream);color:var(--i
 <!-- PAGES -->
 <div id="page-schedule" class="page active">
   <div class="day-strip" id="dayStrip"></div>
-  <div id="scheduleSwiper">
-    <div class="swiper-track" id="swiperTrack"></div>
-  </div>
+  <div id="swiperTrack"></div>
 </div>
 
-<!-- ADD SPOT MODAL -->
-<div class="modal-overlay" id="addSpotModal" onclick="closeModal('addSpotModal')">
-  <div class="modal-sheet" onclick="event.stopPropagation()">
-    <div class="modal-handle"></div>
-    <div class="add-modal">
-      <div style="font-size:17px;font-weight:500;margin:0 0 4px;">新增 / 調整景點</div>
-      <div style="font-size:12px;color:var(--muted);margin-bottom:16px;">可搜尋景點、調整日期與排序</div>
-      <div class="form-group">
-        <label class="form-label">景點名稱</label>
-        <input class="form-input" id="spotNameInput" placeholder="輸入景點名稱">
-      </div>
-      <div class="form-group">
-        <label class="form-label">類別</label>
-        <select class="form-input" id="spotTypeInput">
-          <option value="spot">⛩️ 景點</option>
-          <option value="food">🍽️ 餐飲</option>
-          <option value="shop">🛍️ 購物</option>
-          <option value="hotel">🏨 住宿</option>
-          <option value="transport">🚇 交通</option>
-        </select>
-      </div>
-      <div class="form-group">
-        <label class="form-label">安排在哪一天</label>
-        <select class="form-input" id="spotDayInput"></select>
-      </div>
-      <div class="form-group">
-        <label class="form-label">插入位置（排在第幾項之後）</label>
-        <select class="form-input" id="spotPositionInput"></select>
-      </div>
-      <div class="form-group">
-        <label class="form-label">時間（選填）</label>
-        <input class="form-input" id="spotTimeInput" placeholder="例：10:30 或 下午">
-      </div>
-      <div class="form-group">
-        <label class="form-label">備注（選填）</label>
-        <input class="form-input" id="spotNotesInput" placeholder="開放時間、票價等資訊">
-      </div>
-      <div style="margin-bottom:14px;">
-        <button class="btn-map" onclick="searchOnGoogleMaps()" style="margin-top:0;">🔍 在 Google Maps 搜尋此景點</button>
-      </div>
-      <div style="display:flex;gap:10px;">
-        <button class="btn-secondary" onclick="closeModal('addSpotModal')" style="border:none;">取消</button>
-        <button class="btn-primary" onclick="saveNewSpot()">加入行程</button>
-      </div>
-    </div>
-  </div>
-</div>
-
-<!-- EDIT/MOVE SPOT MODAL -->
-<div class="modal-overlay" id="editSpotModal" onclick="closeModal('editSpotModal')">
-  <div class="modal-sheet" onclick="event.stopPropagation()">
-    <div class="modal-handle"></div>
-    <div class="add-modal">
-      <div style="font-size:17px;font-weight:500;margin:0 0 4px;">編輯景點</div>
-      <div style="font-size:12px;color:var(--muted);margin-bottom:16px;" id="editSpotSubtitle"></div>
-      <div class="form-group">
-        <label class="form-label">景點名稱</label>
-        <input class="form-input" id="editSpotName">
-      </div>
-      <div class="form-group">
-        <label class="form-label">移到哪一天</label>
-        <select class="form-input" id="editSpotDay"></select>
-      </div>
-      <div class="form-group">
-        <label class="form-label">排在第幾項之後</label>
-        <select class="form-input" id="editSpotPosition"></select>
-      </div>
-      <div class="form-group">
-        <label class="form-label">時間</label>
-        <input class="form-input" id="editSpotTime">
-      </div>
-      <div class="form-group">
-        <label class="form-label">備注</label>
-        <input class="form-input" id="editSpotNotes">
-      </div>
-      <div style="display:flex;gap:10px;margin-bottom:10px;">
-        <button class="btn-secondary" onclick="closeModal('editSpotModal')" style="border:none;">取消</button>
-        <button class="btn-primary" onclick="saveEditSpot()">儲存變更</button>
-      </div>
-      <button onclick="deleteSpot()" style="width:100%;border:0.5px solid #FCA5A5;color:#EF4444;background:#FFF5F5;border-radius:12px;padding:12px;font-size:14px;cursor:pointer;font-family:inherit;">🗑 從行程中移除</button>
-    </div>
-  </div>
-</div>
 
 <div id="page-transport" class="page">
   <div style="padding:16px 20px 8px">
@@ -501,6 +429,62 @@ body{font-family:'Noto Sans TC',sans-serif;background:var(--cream);color:var(--i
   </div>
 </div>
 
+<!-- TIME EDITOR MODAL -->
+<div class="modal-overlay" id="timeEditorModal" onclick="closeModal('timeEditorModal')">
+  <div class="modal-sheet" onclick="event.stopPropagation()">
+    <div class="modal-handle"></div>
+    <div style="padding:0 20px 36px;">
+      <div style="font-size:11px;letter-spacing:1px;color:var(--muted);text-transform:uppercase;margin-bottom:4px;">時間設定</div>
+      <div style="font-size:17px;font-weight:500;margin-bottom:16px;" id="teSpotName"></div>
+
+      <!-- 24H SCROLL PICKER -->
+      <div style="font-size:12px;color:var(--muted);margin-bottom:6px;">抵達時間（24小時制）</div>
+      <div class="picker-wrap">
+        <div>
+          <div class="picker-col-label">時</div>
+          <div class="picker-container">
+            <div class="picker-sel-line"></div>
+            <div class="picker-scroll" id="teHourPicker"></div>
+          </div>
+        </div>
+        <div class="te-colon">:</div>
+        <div>
+          <div class="picker-col-label">分</div>
+          <div class="picker-container">
+            <div class="picker-sel-line"></div>
+            <div class="picker-scroll" id="teMinPicker"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- LOCK -->
+      <label style="display:flex;align-items:center;gap:10px;background:var(--surface);border-radius:12px;padding:12px 14px;cursor:pointer;margin-bottom:14px;">
+        <input type="checkbox" id="teLocked" style="width:18px;height:18px;accent-color:var(--sakura-deep);flex-shrink:0;">
+        <div>
+          <div style="font-size:13px;font-weight:500;">🔒 鎖定抵達時間</div>
+          <div style="font-size:11px;color:var(--muted);margin-top:2px;">後續景點時間將由此時間自動推算</div>
+        </div>
+      </label>
+
+      <!-- STAY / DURATION -->
+      <div id="teStayRow" style="margin-bottom:14px;">
+        <div style="font-size:12px;color:var(--muted);margin-bottom:6px;">停留時間（分鐘）</div>
+        <input class="form-input" id="teStay" type="number" placeholder="例：60（1小時）">
+        <div style="font-size:11px;color:var(--muted);margin-top:4px;">系統將把停留時間加入推算後續景點的抵達時間</div>
+      </div>
+      <div id="teDurRow" style="display:none;margin-bottom:14px;">
+        <div style="font-size:12px;color:var(--muted);margin-bottom:6px;">交通時間（分鐘，覆蓋自動偵測）</div>
+        <input class="form-input" id="teDur" type="number" placeholder="例：45">
+      </div>
+
+      <div style="display:flex;gap:10px;">
+        <button class="btn-secondary" onclick="closeModal('timeEditorModal')" style="border:none;">取消</button>
+        <button class="btn-primary" onclick="saveTimeEditor()">儲存並更新</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <script>
 // ====== STATE ======
 let members = JSON.parse(localStorage.getItem('jp_members') || 'null') || [
@@ -741,35 +725,69 @@ function typeIcon(t) {
   return ({spot:'⛩️',food:'🍽️',shop:'🛍️',hotel:'🏨',transport:'🚇',concert:'🎵',flight:'✈️'})[t] || '📍';
 }
 
-// ---- Build all slides once, then just refresh content ----
+// ---- Build all slides — visibility-based (no overflow:hidden, vertical scroll works) ----
 function buildSwiperSlides() {
-  const track = document.getElementById('swiperTrack');
-  track.innerHTML = '';
+  const container = document.getElementById('swiperTrack');
+  container.innerHTML = '';
   DAYS.forEach((d, i) => {
     const slide = document.createElement('div');
-    slide.className = 'swiper-slide';
+    slide.className = 'swiper-slide' + (i === 0 ? ' active-slide' : '');
     slide.id = 'slide-' + i;
     const wrap = document.createElement('div');
     wrap.className = 'timeline-wrap';
     wrap.id = 'timelineWrap-' + i;
     slide.appendChild(wrap);
-    track.appendChild(slide);
+    container.appendChild(slide);
   });
   DAYS.forEach((_, i) => renderDayContent(i));
-  goToSlide(currentDay, false);
   initSwipe();
 }
 
-function goToSlide(i, animate = true) {
-  const track = document.getElementById('swiperTrack');
-  if (!animate) track.style.transition = 'none';
-  track.style.transform = `translateX(-${i * 100}%)`;
-  if (!animate) requestAnimationFrame(() => { track.style.transition = ''; });
+function goToSlide(i, _animate) {
+  // Hide current, show new
+  document.querySelectorAll('.swiper-slide').forEach((s, si) => {
+    s.classList.toggle('active-slide', si === i);
+  });
   currentDay = i;
   document.querySelectorAll('.day-chip').forEach((c, ci) => c.classList.toggle('active', ci === i));
-  // Scroll day chip into view
   const chips = document.querySelectorAll('.day-chip');
-  if (chips[i]) chips[i].scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+  if (chips[i]) chips[i].scrollIntoView({ behavior:'smooth', block:'nearest', inline:'center' });
+  // Scroll page to top when switching days
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+// ---- SWIPE — listen on the active slide's timeline, detect horizontal clearly ----
+function initSwipe() {
+  const container = document.getElementById('swiperTrack');
+  let sx = 0, sy = 0, decided = false, isH = false;
+
+  container.addEventListener('touchstart', e => {
+    if (_td) return;
+    if (e.target.closest('.tl-drag-handle')) return;
+    sx = e.touches[0].clientX;
+    sy = e.touches[0].clientY;
+    decided = false; isH = false;
+  }, { passive: true });
+
+  container.addEventListener('touchmove', e => {
+    if (_td) return;
+    if (e.target.closest('.tl-drag-handle')) return;
+    const dx = e.touches[0].clientX - sx;
+    const dy = e.touches[0].clientY - sy;
+    if (!decided && (Math.abs(dx) > 10 || Math.abs(dy) > 10)) {
+      isH = Math.abs(dx) > Math.abs(dy) * 1.8;
+      decided = true;
+    }
+    if (isH) e.preventDefault(); // only block scroll for confirmed horizontal swipe
+  }, { passive: false });
+
+  container.addEventListener('touchend', e => {
+    if (_td || !isH || !decided) return;
+    const dx = e.changedTouches[0].clientX - sx;
+    if (dx < -55 && currentDay < DAYS.length - 1) goToSlide(currentDay + 1);
+    else if (dx > 55 && currentDay > 0) goToSlide(currentDay - 1);
+    decided = false; isH = false;
+  }, { passive: true });
 }
 
 function renderTimeline() { renderDayContent(currentDay); }
@@ -834,47 +852,6 @@ function renderTimelineItems(dayIdx) {
     handle.addEventListener('touchcancel', onDragTouchCancel, { passive: true });
     tl.appendChild(el);
   });
-}
-
-// ---- SWIPE LEFT/RIGHT between days — does NOT block vertical scroll ----
-function initSwipe() {
-  const swiper = document.getElementById('scheduleSwiper');
-  let sx = 0, sy = 0, gestureDecided = false, isHorizontal = false;
-
-  swiper.addEventListener('touchstart', e => {
-    if (_td) return;
-    // Only start swipe detection if NOT touching a drag handle
-    if (e.target.classList.contains('tl-drag-handle')) return;
-    sx = e.touches[0].clientX;
-    sy = e.touches[0].clientY;
-    gestureDecided = false;
-    isHorizontal = false;
-  }, { passive: true });
-
-  swiper.addEventListener('touchmove', e => {
-    if (_td) return;
-    if (e.target.classList.contains('tl-drag-handle')) return;
-    const dx = e.touches[0].clientX - sx;
-    const dy = e.touches[0].clientY - sy;
-    if (!gestureDecided) {
-      // Need at least 8px movement before deciding
-      if (Math.abs(dx) < 8 && Math.abs(dy) < 8) return;
-      // If predominantly horizontal AND moving more than 2:1 ratio → swipe
-      isHorizontal = Math.abs(dx) > Math.abs(dy) * 2;
-      gestureDecided = true;
-    }
-    // Only prevent default for confirmed horizontal swipe (lets vertical scroll work normally)
-    if (isHorizontal) e.preventDefault();
-  }, { passive: false });
-
-  swiper.addEventListener('touchend', e => {
-    if (_td || !isHorizontal || !gestureDecided) return;
-    const dx = e.changedTouches[0].clientX - sx;
-    if (dx < -60 && currentDay < DAYS.length - 1) goToSlide(currentDay + 1);
-    else if (dx > 60 && currentDay > 0) goToSlide(currentDay - 1);
-    isHorizontal = false;
-    gestureDecided = false;
-  }, { passive: true });
 }
 
 // ---- TOUCH DRAG to reorder ----
@@ -1197,17 +1174,13 @@ function renderItemDetail(dayIdx, itemIdx, routeIdx) {
   const encDest = encodeURIComponent(item.mapQuery);
   const encFrom = item._fromQuery ? encodeURIComponent(item._fromQuery) : '';
   const encTo   = item._toQuery   ? encodeURIComponent(item._toQuery)   : encDest;
+  const isTransport = item.type === 'transport' || !!item._autoTransport;
 
-  // ① 即時路線查詢 (transit, origin+dest if available)
   const transitUrl = encFrom
     ? `https://www.google.com/maps/dir/?api=1&origin=${encFrom}&destination=${encTo}&travelmode=transit`
     : `https://www.google.com/maps/dir/?api=1&destination=${encDest}&travelmode=transit`;
-
-  // ② 查看位置 (search pin)
   const searchUrl = `https://www.google.com/maps/search/?api=1&query=${encDest}`;
-
-  // ③ 兩景點之間交通路線 — always origin→destination regardless of travelmode (shows all options)
-  const prev = dayIdx >= 0 && itemIdx > 0 ? DAYS[dayIdx].items[itemIdx - 1] : null;
+  const prev = itemIdx > 0 ? DAYS[dayIdx].items[itemIdx - 1] : null;
   const prevQuery = encFrom || (prev ? encodeURIComponent(prev.mapQuery) : '');
   const betweenUrl = prevQuery
     ? `https://www.google.com/maps/dir/?api=1&origin=${prevQuery}&destination=${encTo}`
@@ -1235,19 +1208,48 @@ function renderItemDetail(dayIdx, itemIdx, routeIdx) {
       <div class="nearby-grid">${item.nearby.map(n => `<div class="nearby-card" onclick="window.open('https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(n.name)}','_blank','noopener')"><div class="nearby-name">${n.name}</div><div class="nearby-dist">${n.dist}</div></div>`).join('')}</div>`;
   }
 
+  // Time info line
+  const displayTime = item.arrivalTime || item.time || '—';
+  const lockLabel = item.lockedArrival ? '🔒 已鎖定' : '未鎖定';
+  const stayLabel = item.stayMins ? `${item.stayMins} 分鐘` : '未設定';
+  const durLabel = item.durationMins ? `${item.durationMins} 分鐘` : '自動';
+
+  // Conflict warning in modal
+  const conflictHtml = item._conflict
+    ? `<div style="background:#FEE2E2;color:#DC2626;border-radius:10px;padding:10px 12px;font-size:13px;margin-bottom:12px;">⚠️ 時間衝突：根據前面行程推算，抵達時間將晚於鎖定時間，請調整。</div>`
+    : '';
+
+  // Time section (inline, always visible)
+  const timeSection = `
+    <div style="background:var(--surface);border-radius:12px;padding:14px;margin:14px 0;">
+      <div style="font-size:13px;font-weight:500;margin-bottom:10px;">⏰ 時間設定</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px;">
+        <div>
+          <div style="font-size:11px;color:var(--muted);margin-bottom:4px;">抵達時間</div>
+          <div style="font-size:15px;font-weight:500;color:${item.lockedArrival ? 'var(--sakura-deep)' : 'var(--ink)'};">${displayTime} ${item.lockedArrival ? '🔒' : ''}</div>
+        </div>
+        <div>
+          <div style="font-size:11px;color:var(--muted);margin-bottom:4px;">${isTransport ? '交通時間' : '停留時間'}</div>
+          <div style="font-size:15px;font-weight:500;">${isTransport ? durLabel : stayLabel}</div>
+        </div>
+      </div>
+      <button onclick="openTimeEditor(${dayIdx},${itemIdx})" style="width:100%;background:white;border:0.5px solid var(--border);border-radius:10px;padding:9px;font-size:13px;cursor:pointer;font-family:inherit;color:var(--ink);">✎ 編輯時間設定</button>
+    </div>`;
+
   document.getElementById('modalContent').innerHTML = `
     <div class="modal-type">${typeLabels[item.type] || item.type}</div>
     <div class="modal-title">${item.name}</div>
     <div class="modal-subtitle">${item.location}</div>
+    ${conflictHtml}
     ${item.notes ? `<div class="info-row"><div class="info-label">備注</div><div class="info-value">${item.notes}</div></div>` : ''}
-    <div class="info-row"><div class="info-label">時間</div><div class="info-value">${item.time}</div></div>
     ${item.statusText ? `<div class="info-row"><div class="info-label">狀態</div><div class="info-value">${item.statusText}</div></div>` : ''}
+    ${timeSection}
     ${routeHtml}
     ${nearbyHtml}
-    <div style="margin-top:20px;display:flex;flex-direction:column;gap:8px;">
-      <button class="btn-map" onclick="window.open('${transitUrl}','_blank','noopener')">🚇 Google Maps 即時路線查詢</button>
-      <button style="display:flex;align-items:center;justify-content:center;gap:6px;width:100%;background:#4285F4;color:white;border:none;border-radius:12px;padding:12px;font-size:14px;font-family:inherit;font-weight:500;cursor:pointer;opacity:0.85;" onclick="window.open('${searchUrl}','_blank','noopener')">📍 Google Maps 查看位置</button>
-      <button class="btn-nav" onclick="window.open('${betweenUrl}','_blank','noopener')">🗺 Google Maps 顯示兩景點交通路線</button>
+    <div style="margin-top:16px;display:flex;flex-direction:column;gap:8px;">
+      <button class="btn-map" onclick="window.open('${transitUrl}','_blank','noopener')">🚇 即時路線查詢</button>
+      <button style="display:flex;align-items:center;justify-content:center;gap:6px;width:100%;background:#4285F4;color:white;border:none;border-radius:12px;padding:12px;font-size:14px;font-family:inherit;font-weight:500;cursor:pointer;" onclick="window.open('${searchUrl}','_blank','noopener')">📍 查看景點位置</button>
+      <button class="btn-nav" onclick="window.open('${betweenUrl}','_blank','noopener')">🗺 顯示兩景點間路線</button>
     </div>`;
   document.getElementById('detailModal').dataset.dayIdx = dayIdx;
   document.getElementById('detailModal').dataset.itemIdx = itemIdx;
@@ -1256,6 +1258,89 @@ function renderItemDetail(dayIdx, itemIdx, routeIdx) {
 function switchRoute(dayIdx, itemIdx, routeIdx) {
   selectedRouteIdx = routeIdx;
   renderItemDetail(dayIdx, itemIdx, routeIdx);
+}
+
+// ====== TIME EDITOR (opened from detail modal) ======
+let _timeDayIdx = -1, _timeItemIdx = -1;
+
+function openTimeEditor(dayIdx, itemIdx) {
+  _timeDayIdx = dayIdx; _timeItemIdx = itemIdx;
+  const item = DAYS[dayIdx].items[itemIdx];
+  const isTransport = item.type === 'transport' || !!item._autoTransport;
+
+  // Parse existing time for picker
+  const t = parseTime(item.arrivalTime || item.time) || 9 * 60;
+  const hh = Math.floor(t / 60);
+  const mm = t % 60;
+
+  document.getElementById('teSpotName').textContent = item.name;
+  document.getElementById('teLocked').checked = !!item.lockedArrival;
+  document.getElementById('teStayRow').style.display = isTransport ? 'none' : 'block';
+  document.getElementById('teDurRow').style.display = isTransport ? 'block' : 'none';
+  document.getElementById('teStay').value = item.stayMins || '';
+  document.getElementById('teDur').value = item.durationMins || '';
+
+  // Init scroll pickers
+  initScrollPicker('teHourPicker', [...Array(24).keys()].map(n => String(n).padStart(2,'0')), hh);
+  initScrollPicker('teMinPicker', ['00','05','10','15','20','25','30','35','40','45','50','55'], Math.round(mm / 5));
+
+  openModal('timeEditorModal');
+}
+
+function initScrollPicker(containerId, values, selectedIdx) {
+  const container = document.getElementById(containerId);
+  container.innerHTML = '';
+  const ITEM_H = 44;
+  values.forEach((v, i) => {
+    const el = document.createElement('div');
+    el.className = 'picker-item';
+    el.textContent = v;
+    el.dataset.val = v;
+    container.appendChild(el);
+  });
+  // Scroll to selected
+  container.scrollTop = selectedIdx * ITEM_H;
+  // Highlight center item on scroll
+  container.addEventListener('scroll', () => highlightCenter(container, ITEM_H), { passive: true });
+  highlightCenter(container, ITEM_H);
+}
+
+function highlightCenter(container, ITEM_H) {
+  const center = container.scrollTop + ITEM_H * 1.5; // 1.5 = middle of 3 visible
+  [...container.querySelectorAll('.picker-item')].forEach((el, i) => {
+    const mid = i * ITEM_H + ITEM_H / 2;
+    el.classList.toggle('picker-selected', Math.abs(mid - center) < ITEM_H / 2);
+  });
+}
+
+function getPickerValue(containerId) {
+  const container = document.getElementById(containerId);
+  const ITEM_H = 44;
+  const idx = Math.round(container.scrollTop / ITEM_H);
+  const items = container.querySelectorAll('.picker-item');
+  return items[Math.min(idx, items.length - 1)]?.dataset.val || '00';
+}
+
+function saveTimeEditor() {
+  const item = DAYS[_timeDayIdx].items[_timeItemIdx];
+  const hh = getPickerValue('teHourPicker');
+  const mm = getPickerValue('teMinPicker');
+  const timeStr = `${hh}:${mm}`;
+  item.lockedArrival = document.getElementById('teLocked').checked;
+  item.arrivalTime = timeStr;
+  item.time = timeStr;
+  const stay = parseInt(document.getElementById('teStay').value);
+  item.stayMins = isNaN(stay) ? 0 : stay;
+  const dur = parseInt(document.getElementById('teDur').value);
+  item.durationMins = isNaN(dur) ? null : dur;
+
+  // Recalc day and re-render timeline (problem 3: immediate update)
+  recalcDayTimes(_timeDayIdx);
+  renderTimelineItems(_timeDayIdx);
+
+  closeModal('timeEditorModal');
+  // Refresh the detail modal to show updated info
+  renderItemDetail(_timeDayIdx, _timeItemIdx, selectedRouteIdx);
 }
 
 // ====== GOOGLE MAPS - FIX: use window.open with proper URL ======
