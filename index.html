@@ -160,6 +160,90 @@ body{font-family:'Noto Sans TC',sans-serif;background:var(--cream);color:var(--i
   <div class="timeline-wrap" id="timelineWrap"></div>
 </div>
 
+<!-- ADD SPOT MODAL -->
+<div class="modal-overlay" id="addSpotModal" onclick="closeModal('addSpotModal')">
+  <div class="modal-sheet" onclick="event.stopPropagation()">
+    <div class="modal-handle"></div>
+    <div class="add-modal">
+      <div style="font-size:17px;font-weight:500;margin:0 0 4px;">新增 / 調整景點</div>
+      <div style="font-size:12px;color:var(--muted);margin-bottom:16px;">可搜尋景點、調整日期與排序</div>
+      <div class="form-group">
+        <label class="form-label">景點名稱</label>
+        <input class="form-input" id="spotNameInput" placeholder="輸入景點名稱">
+      </div>
+      <div class="form-group">
+        <label class="form-label">類別</label>
+        <select class="form-input" id="spotTypeInput">
+          <option value="spot">⛩️ 景點</option>
+          <option value="food">🍽️ 餐飲</option>
+          <option value="shop">🛍️ 購物</option>
+          <option value="hotel">🏨 住宿</option>
+          <option value="transport">🚇 交通</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">安排在哪一天</label>
+        <select class="form-input" id="spotDayInput"></select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">插入位置（排在第幾項之後）</label>
+        <select class="form-input" id="spotPositionInput"></select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">時間（選填）</label>
+        <input class="form-input" id="spotTimeInput" placeholder="例：10:30 或 下午">
+      </div>
+      <div class="form-group">
+        <label class="form-label">備注（選填）</label>
+        <input class="form-input" id="spotNotesInput" placeholder="開放時間、票價等資訊">
+      </div>
+      <div style="margin-bottom:14px;">
+        <button class="btn-map" onclick="searchOnGoogleMaps()" style="margin-top:0;">🔍 在 Google Maps 搜尋此景點</button>
+      </div>
+      <div style="display:flex;gap:10px;">
+        <button class="btn-secondary" onclick="closeModal('addSpotModal')" style="border:none;">取消</button>
+        <button class="btn-primary" onclick="saveNewSpot()">加入行程</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- EDIT/MOVE SPOT MODAL -->
+<div class="modal-overlay" id="editSpotModal" onclick="closeModal('editSpotModal')">
+  <div class="modal-sheet" onclick="event.stopPropagation()">
+    <div class="modal-handle"></div>
+    <div class="add-modal">
+      <div style="font-size:17px;font-weight:500;margin:0 0 4px;">編輯景點</div>
+      <div style="font-size:12px;color:var(--muted);margin-bottom:16px;" id="editSpotSubtitle"></div>
+      <div class="form-group">
+        <label class="form-label">景點名稱</label>
+        <input class="form-input" id="editSpotName">
+      </div>
+      <div class="form-group">
+        <label class="form-label">移到哪一天</label>
+        <select class="form-input" id="editSpotDay"></select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">排在第幾項之後</label>
+        <select class="form-input" id="editSpotPosition"></select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">時間</label>
+        <input class="form-input" id="editSpotTime">
+      </div>
+      <div class="form-group">
+        <label class="form-label">備注</label>
+        <input class="form-input" id="editSpotNotes">
+      </div>
+      <div style="display:flex;gap:10px;margin-bottom:10px;">
+        <button class="btn-secondary" onclick="closeModal('editSpotModal')" style="border:none;">取消</button>
+        <button class="btn-primary" onclick="saveEditSpot()">儲存變更</button>
+      </div>
+      <button onclick="deleteSpot()" style="width:100%;border:0.5px solid #FCA5A5;color:#EF4444;background:#FFF5F5;border-radius:12px;padding:12px;font-size:14px;cursor:pointer;font-family:inherit;">🗑 從行程中移除</button>
+    </div>
+  </div>
+</div>
+
 <div id="page-transport" class="page">
   <div style="padding:16px 20px 8px">
     <div style="font-size:18px;font-weight:500;margin-bottom:4px;">交通轉乘</div>
@@ -208,14 +292,17 @@ body{font-family:'Noto Sans TC',sans-serif;background:var(--cream);color:var(--i
   <div class="section-card">
     <div class="section-title">成員列表</div>
     <div id="participantList"></div>
-    <div class="add-member-row">
-      <input class="member-input" id="newMemberName" placeholder="成員姓名或暱稱">
-      <select class="role-select" id="newMemberRole">
-        <option value="edit">可編輯</option>
-        <option value="view">僅觀看</option>
-        <option value="admin">管理者</option>
-      </select>
-      <button class="add-btn-sm" onclick="addMember()">＋ 加入</button>
+    <div style="margin-top:14px;border-top:0.5px solid var(--border);padding-top:14px;">
+      <div style="font-size:12px;color:var(--muted);margin-bottom:8px;">新增成員</div>
+      <input class="member-input" id="newMemberName" placeholder="成員姓名或暱稱" style="width:100%;margin-bottom:8px;">
+      <div style="display:flex;gap:8px;">
+        <select class="role-select" id="newMemberRole" style="flex:1;">
+          <option value="edit">可編輯</option>
+          <option value="view">僅觀看</option>
+          <option value="admin">管理者</option>
+        </select>
+        <button class="add-btn-sm" onclick="addMember()">＋ 加入</button>
+      </div>
     </div>
   </div>
 
@@ -305,6 +392,86 @@ body{font-family:'Noto Sans TC',sans-serif;background:var(--cream);color:var(--i
         <button class="btn-secondary" onclick="closeModal('addExpModal')" style="border:none;">取消</button>
         <button class="btn-primary" onclick="saveExpense()">儲存</button>
       </div>
+    </div>
+  </div>
+</div>
+
+<!-- ADD SPOT MODAL -->
+<div class="modal-overlay" id="addSpotModal" onclick="closeModal('addSpotModal')">
+  <div class="modal-sheet" onclick="event.stopPropagation()">
+    <div class="modal-handle"></div>
+    <div class="add-modal">
+      <div style="font-size:17px;font-weight:500;margin:0 0 4px;">新增景點</div>
+      <div style="font-size:12px;color:var(--muted);margin-bottom:16px;">加入行程並自動產生交通路線</div>
+      <div class="form-group">
+        <label class="form-label">景點名稱</label>
+        <input class="form-input" id="spotNameInput" placeholder="輸入景點名稱">
+      </div>
+      <div class="form-group">
+        <label class="form-label">類別</label>
+        <select class="form-input" id="spotTypeInput">
+          <option value="spot">⛩️ 景點</option><option value="food">🍽️ 餐飲</option>
+          <option value="shop">🛍️ 購物</option><option value="hotel">🏨 住宿</option>
+          <option value="transport">🚇 交通</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">安排在哪一天</label>
+        <select class="form-input" id="spotDayInput"></select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">插入位置（排在第幾項之後）</label>
+        <select class="form-input" id="spotPositionInput"></select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">時間（選填）</label>
+        <input class="form-input" id="spotTimeInput" placeholder="例：10:30 或 下午">
+      </div>
+      <div class="form-group">
+        <label class="form-label">備注（選填）</label>
+        <input class="form-input" id="spotNotesInput" placeholder="開放時間、票價等">
+      </div>
+      <button class="btn-map" onclick="searchOnGoogleMaps()" style="margin-bottom:12px;">🔍 先在 Google Maps 搜尋此景點</button>
+      <div style="display:flex;gap:10px;">
+        <button class="btn-secondary" onclick="closeModal('addSpotModal')" style="border:none;">取消</button>
+        <button class="btn-primary" onclick="saveNewSpot()">加入行程</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- EDIT SPOT MODAL -->
+<div class="modal-overlay" id="editSpotModal" onclick="closeModal('editSpotModal')">
+  <div class="modal-sheet" onclick="event.stopPropagation()">
+    <div class="modal-handle"></div>
+    <div class="add-modal">
+      <div style="font-size:17px;font-weight:500;margin:0 0 4px;">編輯 / 移動景點</div>
+      <div style="font-size:12px;color:var(--muted);margin-bottom:16px;" id="editSpotSubtitle"></div>
+      <div class="form-group">
+        <label class="form-label">景點名稱</label>
+        <input class="form-input" id="editSpotName">
+      </div>
+      <div class="form-group">
+        <label class="form-label">移到哪一天</label>
+        <select class="form-input" id="editSpotDay"></select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">排在第幾項之後</label>
+        <select class="form-input" id="editSpotPosition"></select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">時間</label>
+        <input class="form-input" id="editSpotTime">
+      </div>
+      <div class="form-group">
+        <label class="form-label">備注</label>
+        <input class="form-input" id="editSpotNotes">
+      </div>
+      <div style="display:flex;gap:10px;margin-bottom:10px;">
+        <button class="btn-secondary" onclick="closeModal('editSpotModal')" style="border:none;">取消</button>
+        <button class="btn-primary" onclick="saveEditSpot()">儲存變更</button>
+      </div>
+      <button onclick="deleteSpot()" style="width:100%;border:0.5px solid #FCA5A5;color:#EF4444;background:#FFF5F5;border-radius:12px;padding:12px;font-size:14px;cursor:pointer;font-family:inherit;">🗑 從行程中移除</button>
     </div>
   </div>
 </div>
@@ -519,11 +686,14 @@ function switchPage(name, el) {
 }
 
 // ====== SCHEDULE ======
+let _editDayIdx = -1, _editItemIdx = -1;
+
 function buildDayStrip() {
   const strip = document.getElementById('dayStrip');
+  strip.innerHTML = '';
   DAYS.forEach((d, i) => {
     const chip = document.createElement('div');
-    chip.className = 'day-chip' + (i === 0 ? ' active' : '');
+    chip.className = 'day-chip' + (i === currentDay ? ' active' : '');
     chip.textContent = d.date + ' ' + d.label;
     chip.onclick = () => selectDay(i);
     strip.appendChild(chip);
@@ -539,6 +709,9 @@ function selectDay(i) {
 function typeClass(t) {
   return ({spot:'dot-spot',food:'dot-food',transport:'dot-transport',hotel:'dot-hotel',concert:'dot-concert',flight:'dot-flight',shop:'dot-shop'})[t] || 'dot-spot';
 }
+function typeIcon(t) {
+  return ({spot:'⛩️',food:'🍽️',shop:'🛍️',hotel:'🏨',transport:'🚇',concert:'🎵',flight:'✈️'})[t] || '📍';
+}
 
 function renderTimeline() {
   const d = DAYS[currentDay];
@@ -549,6 +722,7 @@ function renderTimeline() {
       <div style="font-size:15px;font-weight:500;">${d.date}</div>
       <div style="font-size:11px;color:${d.tagColor};margin-top:2px;">${d.tag}</div>
     </div>
+    <button onclick="openAddSpot()" style="background:var(--sakura-deep);color:white;border:none;border-radius:20px;padding:7px 14px;font-size:13px;font-weight:500;cursor:pointer;font-family:inherit;">＋ 新增</button>
   </div><div class="timeline" id="tlInner"></div>`;
   const tl = document.getElementById('tlInner');
   d.items.forEach((item, idx) => {
@@ -556,19 +730,144 @@ function renderTimeline() {
     el.className = 'tl-item';
     const statusHtml = item.status ? `<span class="tl-status status-${item.status}">${item.statusText}</span>` : (item.statusText ? `<span style="font-size:11px;color:var(--muted);margin-top:4px;display:inline-block;">${item.statusText}</span>` : '');
     const hasRoute = item.routes && item.routes.length > 0;
+    const isCustom = item._custom || item._autoTransport;
     el.innerHTML = `
       <div class="tl-dot ${typeClass(item.type)}" onclick="openItemDetail(${currentDay},${idx})">${item.icon}</div>
       <div class="tl-card" onclick="openItemDetail(${currentDay},${idx})">
         <div class="tl-card-top">
-          <div class="tl-name">${item.name}</div>
-          <div class="tl-time">${item.time}</div>
+          <div class="tl-name">${item.name}${isCustom ? ' <span style="font-size:10px;background:#FFF0F4;color:var(--sakura-deep);border-radius:6px;padding:1px 5px;">自訂</span>' : ''}</div>
+          <div style="display:flex;align-items:center;gap:4px;flex-shrink:0;">
+            <span class="tl-time">${item.time}</span>
+            <button onclick="event.stopPropagation();openEditSpot(${currentDay},${idx})" style="background:var(--surface);border:none;border-radius:8px;padding:3px 8px;font-size:11px;color:var(--muted);cursor:pointer;font-family:inherit;margin-left:2px;">✎</button>
+          </div>
         </div>
         ${item.location ? `<div class="tl-location"><span style="font-size:10px;">📍</span>${item.location}</div>` : ''}
         ${statusHtml}
-        ${hasRoute ? `<div class="tl-transport-tag"><span>🚇</span> 查看路線（${item.routes.length}種方案）</div>` : ''}
+        ${hasRoute ? `<div class="tl-transport-tag"><span>🚇</span> 查看路線（${item.routes.length}種）</div>` : ''}
       </div>`;
     tl.appendChild(el);
   });
+}
+
+// ====== ADD SPOT ======
+function openAddSpot() {
+  const daySelect = document.getElementById('spotDayInput');
+  daySelect.innerHTML = DAYS.map((d, i) => `<option value="${i}" ${i === currentDay ? 'selected' : ''}>${d.date} ${d.label}</option>`).join('');
+  refreshSpotPositions('spotDayInput', 'spotPositionInput', -1);
+  daySelect.onchange = () => refreshSpotPositions('spotDayInput', 'spotPositionInput', -1);
+  document.getElementById('spotNameInput').value = '';
+  document.getElementById('spotTimeInput').value = '';
+  document.getElementById('spotNotesInput').value = '';
+  document.getElementById('spotTypeInput').value = 'spot';
+  openModal('addSpotModal');
+}
+
+function refreshSpotPositions(daySelectId, posSelectId, currentPos) {
+  const di = parseInt(document.getElementById(daySelectId).value);
+  const items = DAYS[di].items;
+  const sel = document.getElementById(posSelectId);
+  sel.innerHTML = `<option value="-1">最前面</option>` +
+    items.map((it, i) => `<option value="${i}" ${i === currentPos ? 'selected' : ''}>${i+1}. ${it.name.slice(0,18)}</option>`).join('');
+}
+
+function searchOnGoogleMaps() {
+  const name = document.getElementById('spotNameInput').value.trim();
+  window.open('https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent((name || '景點') + ' Japan'), '_blank', 'noopener');
+}
+
+function saveNewSpot() {
+  const name = document.getElementById('spotNameInput').value.trim();
+  if (!name) { alert('請輸入景點名稱'); return; }
+  const type = document.getElementById('spotTypeInput').value;
+  const di = parseInt(document.getElementById('spotDayInput').value);
+  const pos = parseInt(document.getElementById('spotPositionInput').value);
+  const time = document.getElementById('spotTimeInput').value.trim() || '待定';
+  const notes = document.getElementById('spotNotesInput').value.trim();
+  const newItem = { type, icon: typeIcon(type), name, time, location:'', status:'', statusText:'', mapQuery: name + ' Japan', notes, routes:[], nearby:[], _custom:true };
+  DAYS[di].items.splice(pos + 1, 0, newItem);
+  autoInjectTransport(di, pos + 1);
+  closeModal('addSpotModal');
+  currentDay = di;
+  buildDayStrip();
+  renderTimeline();
+}
+
+// ====== EDIT / MOVE / DELETE ======
+function openEditSpot(dayIdx, itemIdx) {
+  _editDayIdx = dayIdx; _editItemIdx = itemIdx;
+  const item = DAYS[dayIdx].items[itemIdx];
+  document.getElementById('editSpotSubtitle').textContent = `${DAYS[dayIdx].date} ${DAYS[dayIdx].label} · 第 ${itemIdx+1} 項`;
+  document.getElementById('editSpotName').value = item.name;
+  document.getElementById('editSpotTime').value = item.time;
+  document.getElementById('editSpotNotes').value = item.notes || '';
+  const daySelect = document.getElementById('editSpotDay');
+  daySelect.innerHTML = DAYS.map((d, i) => `<option value="${i}" ${i === dayIdx ? 'selected' : ''}>${d.date} ${d.label}</option>`).join('');
+  refreshEditPositions(dayIdx, itemIdx);
+  daySelect.onchange = () => refreshEditPositions(parseInt(daySelect.value), -1);
+  openModal('editSpotModal');
+}
+
+function refreshEditPositions(di, currentItemIdx) {
+  const items = DAYS[di].items;
+  const sel = document.getElementById('editSpotPosition');
+  sel.innerHTML = `<option value="-1">最前面</option>` +
+    items.map((it, i) => {
+      if (di === _editDayIdx && i === _editItemIdx) return '';
+      return `<option value="${i}" ${i === currentItemIdx - 1 ? 'selected' : ''}>${i+1}. ${it.name.slice(0,18)}</option>`;
+    }).join('');
+}
+
+function saveEditSpot() {
+  const item = DAYS[_editDayIdx].items[_editItemIdx];
+  item.name = document.getElementById('editSpotName').value.trim() || item.name;
+  item.time = document.getElementById('editSpotTime').value.trim() || item.time;
+  item.notes = document.getElementById('editSpotNotes').value.trim();
+  const newDay = parseInt(document.getElementById('editSpotDay').value);
+  const newPos = parseInt(document.getElementById('editSpotPosition').value);
+  if (newDay !== _editDayIdx || newPos !== _editItemIdx - 1) {
+    DAYS[_editDayIdx].items.splice(_editItemIdx, 1);
+    DAYS[newDay].items.splice(newPos + 1, 0, item);
+    autoInjectTransport(newDay, newPos + 1);
+    currentDay = newDay;
+    buildDayStrip();
+  }
+  closeModal('editSpotModal');
+  renderTimeline();
+}
+
+function deleteSpot() {
+  if (!confirm(`確認移除「${DAYS[_editDayIdx].items[_editItemIdx].name}」？`)) return;
+  DAYS[_editDayIdx].items.splice(_editItemIdx, 1);
+  closeModal('editSpotModal');
+  renderTimeline();
+}
+
+// ====== AUTO TRANSPORT INJECTION (問題3) ======
+function autoInjectTransport(dayIdx, insertedIdx) {
+  const items = DAYS[dayIdx].items;
+  const prev = insertedIdx > 0 ? items[insertedIdx - 1] : null;
+  const curr = items[insertedIdx];
+  if (prev && prev.type !== 'transport' && curr && curr.type !== 'transport' && prev.type !== 'flight') {
+    const tCard = makeAutoTransport(prev.name, curr.name, prev.mapQuery || prev.name, curr.mapQuery || curr.name);
+    items.splice(insertedIdx, 0, tCard);
+  }
+}
+
+function makeAutoTransport(fromName, toName, fromQuery, toQuery) {
+  return {
+    type:'transport', icon:'🚇',
+    name:`${fromName.slice(0,12)} → ${toName.slice(0,12)}`,
+    time:'待定', location:`${fromName.slice(0,12)} → ${toName.slice(0,12)}`,
+    status:'pending', statusText:'⚠️ 請確認交通方式',
+    mapQuery: toQuery,
+    notes:'此交通段為自動產生，點下方按鈕查詢 Google Maps 即時路線',
+    routes:[
+      { label:'大眾運輸', time:'查詢中', cost:'查詢中', steps:[{ icon:'🗺', line:'點下方 Google Maps 查詢即時路線', sub:`${fromName} → ${toName}` }]},
+      { label:'計程車', time:'依距離', cost:'依距離', steps:[{ icon:'🚕', line:'計程車', sub:`${fromName} → ${toName} 直達` }]},
+    ],
+    _autoTransport:true, _fromQuery:fromQuery, _toQuery:toQuery,
+    nearby:[]
+  };
 }
 
 // ====== ITEM DETAIL MODAL ======
@@ -600,7 +899,7 @@ function renderItemDetail(dayIdx, itemIdx, routeIdx) {
         ${stepsHtml}
         <div class="route-meta"><span>⏱ ${r.time}</span><span>💴 ${r.cost}</span></div>
       </div>
-      <button class="btn-map" onclick="openGoogleMapsTransit('${encodeURIComponent(item.mapQuery)}')">🗺 Google Maps 即時路線查詢</button>`;
+      <button class="btn-map" onclick="openGoogleMapsTransit('${encodeURIComponent(item.mapQuery)}','${item._fromQuery ? encodeURIComponent(item._fromQuery) : ''}')">🗺 Google Maps 即時路線查詢</button>`;
   }
 
   // Nearby
@@ -644,8 +943,9 @@ function openMapNav(encodedQuery) {
   window.open(url, '_blank', 'noopener');
 }
 
-function openGoogleMapsTransit(encodedDest) {
-  const url = 'https://www.google.com/maps/dir/?api=1&destination=' + encodedDest + '&travelmode=transit';
+function openGoogleMapsTransit(encodedDest, encodedOrigin) {
+  let url = 'https://www.google.com/maps/dir/?api=1&destination=' + encodedDest + '&travelmode=transit';
+  if (encodedOrigin) url += '&origin=' + encodedOrigin;
   window.open(url, '_blank', 'noopener');
 }
 
