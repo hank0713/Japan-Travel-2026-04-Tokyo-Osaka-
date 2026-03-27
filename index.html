@@ -6,11 +6,11 @@
 <title>🌸 日本行程 4/27–5/5</title>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700&family=DM+Serif+Display&display=swap" rel="stylesheet">
 <style>
-:root{--sakura:#E8A0B0;--sakura-deep:#C4637A;--ink:#1A1A2E;--ink-soft:#2D2D44;--cream:#FDF8F3;--gold:#D4A853;--jade:#4ECDC4;--muted:#8A8A9A;--card:#FFFFFF;--surface:#F5F0EA;--border:rgba(0,0,0,0.08);--shadow:0 2px 12px rgba(0,0,0,0.08);--radius:16px;--tab-h:64px;}
+:root{--sakura:#E8A0B0;--sakura-deep:#C4637A;--ink:#1A1A2E;--ink-soft:#2D2D44;--cream:#FDF8F3;--gold:#D4A853;--jade:#4ECDC4;--muted:#8A8A9A;--card:#FFFFFF;--surface:#F5F0EA;--border:rgba(0,0,0,0.08);--shadow:0 2px 12px rgba(0,0,0,0.08);--radius:16px;--tab-h:64px;--header-h:108px;--daybar-h:52px;}
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
 body{font-family:'Noto Sans TC',sans-serif;background:var(--cream);color:var(--ink);min-height:100vh;}
-#app-wrap{max-width:480px;margin:0 auto;position:relative;overflow-x:hidden;}
-.app-header{background:var(--ink);color:white;padding:20px 20px 0;position:sticky;top:0;z-index:100;}
+#app-wrap{max-width:480px;margin:0 auto;position:relative;overflow-x:hidden;padding-top:var(--header-h,108px);}
+.app-header{background:var(--ink);color:white;padding:16px 20px 0;position:fixed;top:0;left:50%;transform:translateX(-50%);width:100%;max-width:480px;z-index:100;box-shadow:0 2px 8px rgba(0,0,0,0.15);}
 .app-header h1{font-family:'DM Serif Display',serif;font-size:22px;}
 .subtitle{font-size:12px;color:var(--sakura);margin-top:2px;letter-spacing:1px;}
 .header-row{display:flex;align-items:center;justify-content:space-between;}
@@ -24,8 +24,9 @@ body{font-family:'Noto Sans TC',sans-serif;background:var(--cream);color:var(--i
 .day-strip::-webkit-scrollbar{display:none;}
 .day-chip{flex-shrink:0;background:rgba(255,255,255,0.12);color:white;border-radius:20px;padding:6px 14px;font-size:12px;cursor:pointer;transition:all .2s;border:1.5px solid transparent;white-space:nowrap;}
 .day-chip.active{background:var(--sakura);border-color:var(--sakura);font-weight:500;}
-.timeline-wrap{padding:16px 20px;}
-.day-header{display:flex;align-items:center;gap:12px;margin-bottom:16px;}
+.timeline-wrap{padding:12px 20px;}
+.day-header{display:flex;align-items:center;gap:12px;padding:10px 20px;}
+#day-header-bar{position:sticky;top:var(--header-h);z-index:90;background:var(--cream);border-bottom:0.5px solid var(--border);}
 .day-badge{background:var(--sakura-deep);color:white;border-radius:12px;padding:6px 16px;font-size:13px;font-weight:500;}
 .timeline{position:relative;}
 .timeline::before{content:'';position:absolute;left:18px;top:0;bottom:0;width:1.5px;background:linear-gradient(to bottom,var(--sakura),var(--jade));}
@@ -121,7 +122,7 @@ body{font-family:'Noto Sans TC',sans-serif;background:var(--cream);color:var(--i
 .exp-per{font-size:10px;color:var(--muted);text-align:right;margin-top:2px;}
 .add-expense-btn{position:fixed;bottom:calc(var(--tab-h)+20px);right:calc(50% - 220px);width:52px;height:52px;border-radius:50%;background:var(--sakura-deep);color:white;border:none;font-size:24px;cursor:pointer;box-shadow:0 4px 16px rgba(196,99,122,.4);display:flex;align-items:center;justify-content:center;z-index:150;}
 @media(max-width:480px){.add-expense-btn{right:20px;}}
-.day-filter{display:flex;gap:6px;overflow-x:auto;padding:10px 20px;scrollbar-width:none;}
+.day-filter{display:flex;gap:6px;overflow-x:auto;padding:4px 20px 8px;scrollbar-width:none;flex-wrap:nowrap;-webkit-overflow-scrolling:touch;}
 .day-filter::-webkit-scrollbar{display:none;}
 .filter-chip{flex-shrink:0;background:white;border:0.5px solid var(--border);border-radius:20px;padding:5px 12px;font-size:12px;cursor:pointer;transition:all .2s;}
 .filter-chip.active{background:var(--ink);color:white;border-color:var(--ink);}
@@ -162,9 +163,7 @@ body{font-family:'Noto Sans TC',sans-serif;background:var(--cream);color:var(--i
 </style>
 </head>
 <body>
-<div id="app-wrap">
-
-<div class="app-header">
+<div class="app-header" id="main-header">
   <div class="header-row">
     <div>
       <h1>🌸 日本之旅</h1>
@@ -177,6 +176,10 @@ body{font-family:'Noto Sans TC',sans-serif;background:var(--cream);color:var(--i
   </div>
   <div class="day-strip" id="dayStrip"></div>
 </div>
+<div id="day-header-bar" style="position:fixed;top:0;left:50%;transform:translateX(-50%);width:100%;max-width:480px;z-index:90;background:var(--cream);border-bottom:0.5px solid var(--border);display:none;"></div>
+<div id="app-wrap">
+
+
 
 <!-- PAGES -->
 <div id="page-schedule" class="page active">
@@ -258,21 +261,26 @@ body{font-family:'Noto Sans TC',sans-serif;background:var(--cream);color:var(--i
     <div class="section-title">行程資料管理</div>
     <div style="font-size:13px;color:var(--muted);margin-bottom:10px;">所有行程修改已自動儲存，重新整理頁面不會遺失。</div>
     <button onclick="resetDays()" style="width:100%;background:#FFF5F5;color:#EF4444;border:0.5px solid #FCA5A5;border-radius:12px;padding:12px;font-size:13px;cursor:pointer;font-family:inherit;">↩ 還原預設行程（清除所有修改）</button>
-</div>
+</div><!-- end section-card -->
+</div><!-- end page-people -->
 
 <div id="page-expense" class="page">
-  <div style="padding:16px 20px 4px">
-    <div style="font-size:18px;font-weight:500;margin-bottom:4px;">記帳分帳</div>
-    <div style="font-size:13px;color:var(--muted);">根據已加入成員自動計算</div>
+  <!-- Fixed expense header (outside scroll flow) — populated by JS -->
+  <div id="expense-header-bar" style="position:fixed;top:var(--header-h,108px);left:50%;transform:translateX(-50%);width:100%;max-width:480px;z-index:85;background:var(--cream);border-bottom:0.5px solid var(--border);">
+    <!-- Row 2: summary cards -->
+    <div class="expense-summary" style="padding:10px 20px 6px;">
+      <div class="summary-card"><div class="summary-num" id="totalExp">¥0</div><div class="summary-label">總花費</div></div>
+      <div class="summary-card"><div class="summary-num" id="perPerson">¥0</div><div class="summary-label">每人均攤</div></div>
+      <div class="summary-card"><div class="summary-num" id="expCount">0</div><div class="summary-label">筆記錄</div></div>
+    </div>
+    <!-- Row 3: member breakdown (horizontal scroll) -->
+    <div id="memberBreakdown" style="display:flex;gap:6px;overflow-x:auto;padding:0 20px 6px;scrollbar-width:none;-webkit-overflow-scrolling:touch;"></div>
+    <!-- Row 4: day filter chips (horizontal scroll) -->
+    <div class="day-filter" id="expFilter" style="overflow-x:auto;padding:4px 20px 8px;scrollbar-width:none;-webkit-overflow-scrolling:touch;display:flex;gap:6px;flex-wrap:nowrap;"></div>
   </div>
-  <div class="expense-summary">
-    <div class="summary-card"><div class="summary-num" id="totalExp">¥0</div><div class="summary-label">總花費</div></div>
-    <div class="summary-card"><div class="summary-num" id="perPerson">¥0</div><div class="summary-label">每人均攤</div></div>
-    <div class="summary-card"><div class="summary-num" id="expCount">0</div><div class="summary-label">筆記錄</div></div>
-  </div>
-  <div class="day-filter" id="expFilter"></div>
-  <div id="expenseList"></div></div>
-
+  <!-- Scrollable expense list — padding-top set by JS to clear fixed header -->
+  <div id="expenseList" style="padding-top:var(--exp-header-h,160px);"></div>
+</div>
 </div><!-- end app-wrap -->
 
 <!-- FIXED UI (outside app-wrap so position:fixed works) -->
@@ -318,9 +326,9 @@ body{font-family:'Noto Sans TC',sans-serif;background:var(--cream);color:var(--i
       <div class="form-group">
         <label class="form-label">日期</label>
         <select class="form-input" id="expDayInput">
-          <option>4/27 Day1</option><option>4/28 Day2</option><option>4/29 Day3</option>
-          <option>4/30 Day4</option><option>5/1 Day5</option><option>5/2 Day6</option>
-          <option>5/3 Day7</option><option>5/4 Day8</option><option>5/5 Day9</option>
+          <option value="4/27">4/27 Day1</option><option value="4/28">4/28 Day2</option><option value="4/29">4/29 Day3</option>
+          <option value="4/30">4/30 Day4</option><option value="5/1">5/1 Day5</option><option value="5/2">5/2 Day6</option>
+          <option value="5/3">5/3 Day7</option><option value="5/4">5/4 Day8</option><option value="5/5">5/5 Day9</option>
         </select>
       </div>
       <div class="form-group">
@@ -712,10 +720,35 @@ function switchPage(name, el) {
   document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
   document.getElementById('page-' + name).classList.add('active');
   el.classList.add('active');
-  // Show day-strip only on schedule page
+  const isSchedule = name === 'schedule';
+  const isExpense = name === 'expense';
   const strip = document.getElementById('dayStrip');
-  if (strip) strip.style.display = (name === 'schedule') ? 'flex' : 'none';
-  if (name === 'expense') renderExpenses();
+  const bar = document.getElementById('day-header-bar');
+  const expBar = document.getElementById('expense-header-bar');
+  if (strip) strip.style.display = isSchedule ? 'flex' : 'none';
+  if (bar) bar.style.display = isSchedule ? 'block' : 'none';
+  if (expBar) expBar.style.display = isExpense ? 'block' : 'none';
+  // Adjust app-wrap padding
+  const wrap = document.getElementById('app-wrap');
+  if (wrap) {
+    const headerH = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--header-h')) || 108;
+    const barH = isSchedule && bar ? Math.ceil(bar.getBoundingClientRect().height) : 0;
+    wrap.style.paddingTop = (headerH + barH) + 'px';
+  }
+  if (name === 'expense') {
+    renderExpenses();
+    // After render, measure expense header height and set expenseList padding
+    requestAnimationFrame(() => {
+      const expBar2 = document.getElementById('expense-header-bar');
+      const expList = document.getElementById('expenseList');
+      if (expBar2 && expList) {
+        const eh = Math.ceil(expBar2.getBoundingClientRect().height);
+        const headerH = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--header-h')) || 108;
+        expList.style.paddingTop = (eh) + 'px';
+        document.documentElement.style.setProperty('--exp-header-h', eh + 'px');
+      }
+    });
+  }
   if (name === 'people') renderParticipants();
   if (name === 'transport') renderTransportPage();
 }
@@ -780,6 +813,7 @@ function goToSlide(i, _animate) {
   if (chips[i]) chips[i].scrollIntoView({ behavior:'smooth', block:'nearest', inline:'center' });
   // Scroll page to top when switching days
   window.scrollTo({ top: 0, behavior: 'smooth' });
+  updateDayHeaderBar(i);
 }
 
 // ---- SWIPE — listen on the active slide's timeline, detect horizontal clearly ----
@@ -822,15 +856,23 @@ function renderDayContent(dayIdx) {
   const d = DAYS[dayIdx];
   const wrap = document.getElementById('timelineWrap-' + dayIdx);
   if (!wrap) return;
-  wrap.innerHTML = `<div class="day-header">
+  wrap.innerHTML = `<div class="timeline" id="tlInner-${dayIdx}"></div>`;
+  renderTimelineItems(dayIdx);
+}
+
+function updateDayHeaderBar(dayIdx) {
+  const bar = document.getElementById('day-header-bar');
+  if (!bar) return;
+  const d = DAYS[dayIdx];
+  bar.style.display = 'block';
+  bar.innerHTML = `<div class="day-header">
     <div class="day-badge">${d.label}</div>
     <div style="flex:1">
       <div style="font-size:15px;font-weight:500;">${d.date}</div>
       <div style="font-size:11px;color:${d.tagColor};margin-top:2px;">${d.tag}</div>
     </div>
     <button onclick="openAddSpot(${dayIdx})" style="background:var(--sakura-deep);color:white;border:none;border-radius:20px;padding:7px 14px;font-size:13px;font-weight:500;cursor:pointer;font-family:inherit;white-space:nowrap;">＋ 新增</button>
-  </div><div class="timeline" id="tlInner-${dayIdx}"></div>`;
-  renderTimelineItems(dayIdx);
+  </div>`;
 }
 
 function renderTimelineItems(dayIdx) {
@@ -855,17 +897,25 @@ function renderTimelineItems(dayIdx) {
       ? `<span style="font-size:10px;background:#FEE2E2;color:#EF4444;border-radius:6px;padding:2px 6px;display:inline-block;margin-bottom:2px;">⚠️ 時間衝突</span><br>`
       : '';
 
-    // ── Transport card: depart → arrive + duration
+    // ── Transport card: depart → arrive + duration + inline Maps button
     let transportInfo = '';
     if (isTransport) {
       const tMins = getTransportMins(item);
       const depart = item._departTime || '';
       const arrive = item._calcArrival || '';
       const durStr = tMins ? (tMins >= 60 ? `${Math.floor(tMins/60)}h${tMins%60?tMins%60+'m':''}` : `${tMins}分`) : '待查詢';
+      const fromQ = item._fromQuery || '';
+      const toQ = item._toQuery || item.mapQuery || '';
+      const mapsUrl = fromQ && toQ
+        ? mapsTransitUrl(encodeURIComponent(fromQ), encodeURIComponent(toQ), depart || null, dayIdx)
+        : (toQ ? `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(toQ)}&travelmode=transit` : '');
+      const timeStr = depart ? `<span style="color:var(--ink-soft);font-weight:500;">${depart}</span><span style="color:var(--muted);margin:0 2px;">→</span><span style="color:var(--sakura-deep);font-weight:500;">${arrive||'?'}</span>` : '';
+      const mapsBtn = mapsUrl ? `<span onclick="event.stopPropagation();window.open('${mapsUrl}','_blank','noopener')" style="display:inline-flex;align-items:center;gap:3px;background:#EFF6FF;color:#2563EB;border-radius:20px;padding:2px 8px;font-size:11px;cursor:pointer;font-weight:500;margin-left:4px;">🗺 Maps</span>` : '';
       transportInfo = `
-        <div style="display:flex;align-items:center;gap:6px;margin-top:6px;font-size:12px;">
-          ${depart ? `<span style="color:var(--ink-soft);font-weight:500;">${depart}</span><span style="color:var(--muted);">→</span><span style="color:var(--sakura-deep);font-weight:500;">${arrive || '?'}</span>` : ''}
+        <div style="display:flex;align-items:center;gap:4px;margin-top:5px;font-size:12px;flex-wrap:wrap;">
+          ${timeStr}
           <span style="background:#EFF6FF;color:#3B82F6;border-radius:20px;padding:1px 7px;font-size:11px;">⏱ ${durStr}</span>
+          ${mapsBtn}
         </div>`;
     }
 
@@ -891,7 +941,7 @@ function renderTimelineItems(dayIdx) {
       : (item.statusText && !isTransport ? `<span style="font-size:11px;color:var(--muted);margin-top:2px;display:inline-block;">${item.statusText}</span>` : '');
 
     el.innerHTML = `
-      <div class="tl-drag-handle" data-day="${dayIdx}" data-idx="${idx}">⠿</div>
+      <div class="tl-drag-handle" data-day="${dayIdx}" data-idx="${idx}" style="${isTransport ? 'visibility:hidden;cursor:default;' : ''}">⠿</div>
       <div class="tl-dot ${typeClass(item.type)}" onclick="openItemDetail(${dayIdx},${idx})">${item.icon}</div>
       <div class="tl-card" onclick="openItemDetail(${dayIdx},${idx})" style="${isTransport ? 'background:#F8FAFF;border-color:#DBEAFE;' : ''}">
         <div class="tl-card-top">
@@ -907,7 +957,7 @@ function renderTimelineItems(dayIdx) {
       </div>`;
     try {
       const handle = el.querySelector('.tl-drag-handle');
-      if (handle) {
+      if (handle && !isTransport) {
         handle.addEventListener('touchstart', onDragTouchStart, { passive: true });
         handle.addEventListener('touchend', onDragTouchCancel, { passive: true });
         handle.addEventListener('touchcancel', onDragTouchCancel, { passive: true });
@@ -1659,25 +1709,91 @@ function openShareUrl() {
 
 // ====== EXPENSES ======
 function renderExpenses() {
-  const filtered = expFilterDay === 'all' ? expenses : expenses.filter(e => e.day.startsWith(expFilterDay));
+  const tripDays = ['4/27','4/28','4/29','4/30','5/1','5/2','5/3','5/4','5/5'];
+  const filtered = expFilterDay === 'all'
+    ? expenses
+    : expenses.filter(e => e.day === expFilterDay);
+
+  // ── Totals
   const total = filtered.reduce((s, e) => s + e.amount, 0);
   document.getElementById('totalExp').textContent = '¥' + total.toLocaleString();
-  document.getElementById('perPerson').textContent = members.length > 0 ? '¥' + Math.round(total / members.length).toLocaleString() : '¥0';
+  document.getElementById('perPerson').textContent = members.length > 0
+    ? '¥' + Math.round(total / members.length).toLocaleString() : '¥0';
   document.getElementById('expCount').textContent = filtered.length;
 
-  const days = ['4/27','4/28','4/29','4/30','5/1','5/2','5/3','5/4','5/5'];
-  document.getElementById('expFilter').innerHTML = ['all', ...days].map(d =>
+  // ── Per-member balance (who owes/is owed)
+  const balance = {};
+  members.forEach(m => { balance[m.name] = 0; });
+  filtered.forEach(e => {
+    const splitAmt = e.split && e.split.length > 0 ? e.amount / e.split.length : 0;
+    // payer is owed money from split members
+    if (balance[e.payer] !== undefined) balance[e.payer] += e.amount;
+    (e.split || []).forEach(name => {
+      if (balance[name] !== undefined) balance[name] -= splitAmt;
+    });
+  });
+  document.getElementById('memberBreakdown').innerHTML = members.map(m => {
+    const b = Math.round(balance[m.name] || 0);
+    const color = b > 0 ? '#059669' : b < 0 ? '#EF4444' : '#6B7280';
+    const bg = b > 0 ? '#ECFDF5' : b < 0 ? '#FEF2F2' : '#F3F4F6';
+    const label = b > 0 ? `+¥${b.toLocaleString()}` : b < 0 ? `-¥${Math.abs(b).toLocaleString()}` : '持平';
+    return `<div style="background:${bg};border-radius:20px;padding:4px 10px;white-space:nowrap;font-size:11px;">
+      <span style="color:var(--muted);">${m.name}</span>
+      <span style="color:${color};font-weight:500;margin-left:4px;">${label}</span>
+    </div>`;
+  }).join('');
+
+  // ── Day filter chips
+  document.getElementById('expFilter').innerHTML = ['all', ...tripDays].map(d =>
     `<div class="filter-chip ${expFilterDay === d ? 'active' : ''}" onclick="setExpFilter('${d}')">${d === 'all' ? '全部' : d}</div>`
   ).join('');
 
-  document.getElementById('expenseList').innerHTML = filtered.length ? filtered.map(e => {
-    const perP = e.split && e.split.length > 0 ? Math.round(e.amount / e.split.length) : e.amount;
-    return `<div class="expense-item" onclick="openExpDetail(${e.id})">
-      <div class="exp-icon">${e.cat.split(' ')[0]}</div>
-      <div class="exp-info"><div class="exp-name">${e.name}</div><div class="exp-meta">${e.day} · 付款：${e.payer}</div></div>
-      <div><div class="exp-amount">¥${e.amount.toLocaleString()}</div><div class="exp-per">每人¥${perP.toLocaleString()}</div></div>
+  // ── Expense list grouped by day
+  if (!filtered.length) {
+    document.getElementById('expenseList').innerHTML =
+      '<div style="text-align:center;color:var(--muted);padding:40px 20px;font-size:14px;">尚無記錄<br><span style="font-size:12px;margin-top:4px;display:block;">點擊右下角 ＋ 新增</span></div>';
+    return;
+  }
+
+  // Group expenses by day
+  const byDay = {};
+  filtered.forEach(e => {
+    const key = e.day || '其他';
+    if (!byDay[key]) byDay[key] = [];
+    byDay[key].push(e);
+  });
+
+  // Sort days in trip order
+  const sortedDays = Object.keys(byDay).sort((a, b) => {
+    const ia = tripDays.indexOf(a), ib = tripDays.indexOf(b);
+    return (ia === -1 ? 99 : ia) - (ib === -1 ? 99 : ib);
+  });
+
+  let html = '';
+  sortedDays.forEach(day => {
+    const dayTotal = byDay[day].reduce((s, e) => s + e.amount, 0);
+    const perP = members.length > 0 ? Math.round(dayTotal / members.length) : 0;
+    html += `<div style="padding:10px 20px 4px;display:flex;align-items:center;justify-content:space-between;">
+      <div style="font-size:12px;font-weight:500;color:var(--muted);">${day}</div>
+      <div style="font-size:11px;color:var(--muted);">小計 ¥${dayTotal.toLocaleString()} · 每人 ¥${perP.toLocaleString()}</div>
     </div>`;
-  }).join('') : '<div style="text-align:center;color:var(--muted);padding:40px 20px;font-size:14px;">尚無記錄<br><span style="font-size:12px;margin-top:4px;display:block;">點擊右下角 ＋ 新增</span></div>';
+    byDay[day].forEach(e => {
+      const splitAmt = e.split && e.split.length > 0 ? Math.round(e.amount / e.split.length) : e.amount;
+      const splitNames = (e.split || []).join('、') || '—';
+      html += `<div class="expense-item" onclick="openExpDetail(${e.id})">
+        <div class="exp-icon">${(e.cat || '💴').split(' ')[0]}</div>
+        <div class="exp-info">
+          <div class="exp-name">${e.name}</div>
+          <div class="exp-meta">付款：${e.payer} · 分攤：${splitNames}</div>
+        </div>
+        <div style="text-align:right;">
+          <div class="exp-amount">¥${e.amount.toLocaleString()}</div>
+          <div class="exp-per">每人¥${splitAmt.toLocaleString()}</div>
+        </div>
+      </div>`;
+    });
+  });
+  document.getElementById('expenseList').innerHTML = html;
 }
 
 function setExpFilter(d) { expFilterDay = d; renderExpenses(); }
@@ -1769,6 +1885,27 @@ buildSwiperSlides();
 buildTransportPage();
 renderParticipants();
 renderExpenses();
+// Measure actual fixed header height and set padding-top on app-wrap
+requestAnimationFrame(() => {
+  const header = document.querySelector('.app-header');
+  if (!header) return;
+  const h = Math.ceil(header.getBoundingClientRect().height);
+  document.documentElement.style.setProperty('--header-h', h + 'px');
+  // day-header-bar sits just below the fixed app-header
+  const bar = document.getElementById('day-header-bar');
+  if (bar) bar.style.top = h + 'px';
+  // expense-header-bar also sits below app-header, hidden initially
+  const expBar = document.getElementById('expense-header-bar');
+  if (expBar) { expBar.style.top = h + 'px'; expBar.style.display = 'none'; }
+  // Update day bar content so we can measure its height
+  updateDayHeaderBar(currentDay);
+  requestAnimationFrame(() => {
+    const barH = bar ? Math.ceil(bar.getBoundingClientRect().height) : 0;
+    document.documentElement.style.setProperty('--daybar-h', barH + 'px');
+    const wrap = document.getElementById('app-wrap');
+    if (wrap) wrap.style.paddingTop = (h + barH) + 'px';
+  });
+});
 </script>
 </body>
 </html>
